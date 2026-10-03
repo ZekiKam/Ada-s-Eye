@@ -5,23 +5,6 @@ export function formatDistance(metres: number): string {
 	return `${Math.round(metres)} m`;
 }
 
-/** "51.51°N 0.13°W". */
-export function formatCoordinates(longitude: number, latitude: number): string {
-	const lat = `${Math.abs(latitude).toFixed(2)}°${latitude >= 0 ? "N" : "S"}`;
-	const lon = `${Math.abs(longitude).toFixed(2)}°${longitude >= 0 ? "E" : "W"}`;
-	return `${lat} ${lon}`;
-}
-
-/** "3 Oct 14:05 UTC". */
-export function formatUtc(unixSeconds: number): string {
-	const d = new Date(unixSeconds * 1000);
-	const day = d.getUTCDate();
-	const month = d.toLocaleString("en-GB", { month: "short", timeZone: "UTC" });
-	const hh = String(d.getUTCHours()).padStart(2, "0");
-	const mm = String(d.getUTCMinutes()).padStart(2, "0");
-	return `${day} ${month} ${hh}:${mm} UTC`;
-}
-
 /** "just now", "4 min ago", "3 h ago", "2 d ago". */
 export function formatAge(unixSeconds: number, nowMs: number): string {
 	const s = Math.max(0, Math.round(nowMs / 1000 - unixSeconds));
