@@ -9,22 +9,27 @@ import {
 	LinearMipmapLinearFilter,
 	NoColorSpace,
 	ShaderMaterial,
+	SRGBColorSpace,
 	type Texture,
 	Vector3,
 } from "three";
 import type { GlobeStyle } from "@/theme/globe-style";
 import { surfaceFragmentShader, surfaceVertexShader } from "./shaders/surface";
 
-/** All ocean until the atlas arrives. */
-function emptyMask(): Texture {
+/** One-pixel placeholder until the atlas arrives. Black mask is all ocean. */
+function placeholder(): Texture {
 	const texture = new DataTexture(new Uint8Array([0, 0, 0, 255]), 1, 1);
 	texture.needsUpdate = true;
 	return texture;
 }
 
-function maskTexture(canvas: HTMLCanvasElement): Texture {
+/** The land mask is data; the country map holds sRGB colours. */
+function canvasTexture(
+	canvas: HTMLCanvasElement,
+	colorSpace: typeof NoColorSpace | typeof SRGBColorSpace,
+): Texture {
 	const texture = new CanvasTexture(canvas);
-	texture.colorSpace = NoColorSpace;
+	texture.colorSpace = colorSpace;
 	texture.minFilter = LinearMipmapLinearFilter;
 	texture.magFilter = LinearFilter;
 	texture.anisotropy = 8;
@@ -34,12 +39,14 @@ function maskTexture(canvas: HTMLCanvasElement): Texture {
 interface GlobeSurfaceProps {
 	style: GlobeStyle;
 	landMask: HTMLCanvasElement | null;
+	countryMap: HTMLCanvasElement | null;
 	onClickEmpty(): void;
 }
 
 export function GlobeSurface({
 	style,
 	landMask,
+	countryMap,
 	onClickEmpty,
 }: GlobeSurfaceProps) {
 	const pixelRatio = useThree((s) => s.viewport.dpr);
@@ -50,7 +57,8 @@ export function GlobeSurface({
 				vertexShader: surfaceVertexShader,
 				fragmentShader: surfaceFragmentShader,
 				uniforms: {
-					uLandMask: { value: emptyMask() },
+					uLandMask: { value: placeholder() },
+					uCountryMap: { value: placeholder() },
 					uOcean: { value: new Color() },
 					uOceanShade: { value: new Color() },
 					uLand: { value: new Color() },
@@ -90,14 +98,8 @@ export function GlobeSurface({
 		u.uPixelRatio.value = pixelRatio;
 	}, [material, style, pixelRatio]);
 
-	useEffect(() => {
-		if (!landMask) return;
-		const texture = maskTexture(landMask);
-		const previous = material.uniforms.uLandMask.value as Texture;
-		material.uniforms.uLandMask.value = texture;
-		previous.dispose();
-		return () => texture.dispose();
-	}, [material, landMask]);
+	useCanvasUniform(material, "uLandMask", landMask, NoColorSpace);
+	useCanvasUniform(material, "uCountryMap", countryMap, SRGBColorSpace);
 
 	useEffect(() => () => material.dispose(), [material]);
 
@@ -117,4 +119,21 @@ export function GlobeSurface({
 			<sphereGeometry args={[1, 192, 96]} />
 		</mesh>
 	);
+}
+
+/** Uploads a canvas into a texture uniform, disposing the one it replaces. */
+function useCanvasUniform(
+	material: ShaderMaterial,
+	uniform: string,
+	canvas: HTMLCanvasElement | null,
+	colorSpace: typeof NoColorSpace | typeof SRGBColorSpace,
+) {
+	useEffect(() => {
+		if (!canvas) return;
+		const texture = canvasTexture(canvas, colorSpace);
+		const previous = material.uniforms[uniform].value as Texture;
+		material.uniforms[uniform].value = texture;
+		previous.dispose();
+		return () => texture.dispose();
+	}, [material, uniform, canvas, colorSpace]);
 }

@@ -1,5 +1,5 @@
 import { Canvas } from "@react-three/fiber";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { GlobeEvent } from "@/api/schema";
 import { usePrefersReducedMotion } from "@/lib/hooks";
 import { useGlobeStore } from "@/state/store";
@@ -8,7 +8,7 @@ import type { ViewDefinition } from "@/views/types";
 import { CameraRig } from "./CameraRig";
 import { GeoLines } from "./GeoLines";
 import { GlobeSurface } from "./GlobeSurface";
-import { type Atlas, loadAtlas, lonLatToVector3 } from "./geo";
+import { type Atlas, loadAtlas, lonLatToVector3, paintCountries } from "./geo";
 import { PointsLayer } from "./layers/PointsLayer";
 
 /** Opening view: Europe and Africa, slightly from the north. */
@@ -34,6 +34,11 @@ export function GlobeCanvas({ view, events }: GlobeCanvasProps) {
 	const [atlas, setAtlas] = useState<Atlas | null>(null);
 	const reducedMotion = usePrefersReducedMotion();
 	const select = useGlobeStore((s) => s.select);
+	const style = globeStyle;
+	const countryMap = useMemo(
+		() => (atlas ? paintCountries(atlas.countries, style.countryColors) : null),
+		[atlas, style.countryColors],
+	);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -58,8 +63,6 @@ export function GlobeCanvas({ view, events }: GlobeCanvasProps) {
 		);
 	}
 
-	const style = globeStyle;
-
 	return (
 		<Canvas
 			className="absolute! inset-0"
@@ -72,6 +75,7 @@ export function GlobeCanvas({ view, events }: GlobeCanvasProps) {
 			<GlobeSurface
 				style={style}
 				landMask={atlas?.landMask ?? null}
+				countryMap={countryMap}
 				onClickEmpty={() => select(null)}
 			/>
 			{atlas && (

@@ -72,7 +72,7 @@
 	--page: #2236c8;
 	--bone: #efe7d2;
 	--ink: #0b1046;
-	--panel: rgb(26 41 170 / 0.9);
+	--panel: #1c1b1b;
 
 	--tone-neutral: #efe7d2;
 	--tone-info: #3fd6e8;
@@ -84,7 +84,7 @@
 	--tone-accent3: #c6ff3c;
 	--tone-accent4: #b58cff;
 
-	--background: var(--page);
+	--background: #101233;
 	--foreground: var(--bone);
 	--card: var(--panel);
 	--card-foreground: var(--bone);

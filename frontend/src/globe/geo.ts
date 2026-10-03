@@ -1,7 +1,7 @@
 import { geoCircle, geoEquirectangular, geoGraticule10, geoPath } from "d3-geo";
 import type { MultiLineString } from "geojson";
 import { Vector3 } from "three";
-import { feature, mesh } from "topojson-client";
+import { feature, mesh, neighbors } from "topojson-client";
 import type { GeometryCollection, Topology } from "topojson-specification";
 import countriesUrl from "world-atlas/countries-50m.json?url";
 import landUrl from "world-atlas/land-50m.json?url";
@@ -76,9 +76,17 @@ export function footprintLoop(
 	return ring.map(([lon, lat]) => lonLatToVector3(lon, lat, altitude));
 }
 
+/** A country outline and the palette slot it is painted with. */
+export interface CountryShape {
+	feature: GeoJSON.Feature;
+	/** Neighbouring countries never share a slot. */
+	slot: number;
+}
+
 export interface Atlas {
 	/** Land as white on black, equirectangular, 2:1. */
 	landMask: HTMLCanvasElement;
+	countries: CountryShape[];
 	coastlines: Float32Array;
 	borders: Float32Array;
 	graticule: Float32Array;
@@ -95,26 +103,71 @@ async function fetchTopology(url: string): Promise<WorldTopology> {
 	return (await response.json()) as WorldTopology;
 }
 
-function rasterizeLand(
-	land: GeoJSON.Feature | GeoJSON.FeatureCollection,
-	width: number,
-): HTMLCanvasElement {
+/** An equirectangular 2:1 canvas and a d3 path that draws onto it. */
+function equirectangularCanvas(width: number, background: string) {
 	const height = width / 2;
 	const canvas = document.createElement("canvas");
 	canvas.width = width;
 	canvas.height = height;
 	const ctx = canvas.getContext("2d");
 	if (!ctx) throw new Error("2D canvas unavailable");
-	ctx.fillStyle = "#000";
+	ctx.fillStyle = background;
 	ctx.fillRect(0, 0, width, height);
 	const projection = geoEquirectangular()
 		.scale(width / (2 * Math.PI))
 		.translate([width / 2, height / 2])
 		.precision(0.1);
+	return { canvas, ctx, path: geoPath(projection, ctx) };
+}
+
+function rasterizeLand(
+	land: GeoJSON.Feature | GeoJSON.FeatureCollection,
+	width: number,
+): HTMLCanvasElement {
+	const { canvas, ctx, path } = equirectangularCanvas(width, "#000");
 	ctx.beginPath();
-	geoPath(projection, ctx)(land);
+	path(land);
 	ctx.fillStyle = "#fff";
 	ctx.fill();
+	return canvas;
+}
+
+/**
+ * Greedy graph colouring: countries in descending order of neighbour count
+ * take the lowest slot no neighbour has. Five slots are always enough for
+ * the world map in practice.
+ */
+function colourSlots(adjacency: number[][]): number[] {
+	const slots = new Array<number>(adjacency.length).fill(-1);
+	const order = adjacency
+		.map((_, i) => i)
+		.sort((a, b) => adjacency[b].length - adjacency[a].length);
+	for (const i of order) {
+		const taken = new Set(adjacency[i].map((j) => slots[j]));
+		let slot = 0;
+		while (taken.has(slot)) slot++;
+		slots[i] = slot;
+	}
+	return slots;
+}
+
+/**
+ * Paints each country in its palette slot (wrapping if the palette is
+ * short). Land that belongs to no country gets the first colour. Sampled
+ * only where the land mask says land, so the ocean colour here is irrelevant.
+ */
+export function paintCountries(
+	countries: readonly CountryShape[],
+	palette: readonly string[],
+	width = 4096,
+): HTMLCanvasElement {
+	const { canvas, ctx, path } = equirectangularCanvas(width, palette[0]);
+	for (const { feature: country, slot } of countries) {
+		ctx.beginPath();
+		path(country);
+		ctx.fillStyle = palette[slot % palette.length];
+		ctx.fill();
+	}
 	return canvas;
 }
 
@@ -140,8 +193,14 @@ export function loadAtlas(maskWidth = 4096): Promise<Atlas> {
 			(a, b) => a !== b,
 		);
 
+		const slots = colourSlots(neighbors(countriesObject.geometries));
+		const countries = feature(countriesTopo, countriesObject).features.map(
+			(country, i) => ({ feature: country, slot: slots[i] }),
+		);
+
 		return {
 			landMask: rasterizeLand(feature(landTopo, landObject), maskWidth),
+			countries,
 			coastlines: linesToSegments(coast.coordinates, ALTITUDE.coastline),
 			borders: linesToSegments(borders.coordinates, ALTITUDE.borders),
 			graticule: linesToSegments(

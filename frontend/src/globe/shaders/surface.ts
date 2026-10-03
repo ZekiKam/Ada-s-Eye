@@ -1,5 +1,5 @@
 /**
- * Globe surface: land mask, toon bands from a light fixed in view space,
+ * Globe surface: land mask, per-country colour, toon bands from a light fixed in view space,
  * halftone in the shadow band, an ink rim at the silhouette, then grain.
  * Every constant is a uniform fed from theme/globe-style.ts.
  */
@@ -20,6 +20,7 @@ void main() {
 
 export const surfaceFragmentShader = /* glsl */ `
 uniform sampler2D uLandMask;
+uniform sampler2D uCountryMap;
 uniform vec3 uOcean;
 uniform vec3 uOceanShade;
 uniform vec3 uLand;
@@ -57,8 +58,11 @@ void main() {
 	if (uBands > 1.0) {
 		band = clamp(floor(light * uBands) / (uBands - 1.0), 0.0, 1.0);
 	}
-	vec3 lit = mix(uOcean, uLand, land);
-	vec3 shade = mix(uOceanShade, uLandShade, land);
+	// Each country's colour, darkened in shadow by the land shade ratio.
+	vec3 country = texture2D(uCountryMap, vUv).rgb;
+	vec3 countryShade = country * (uLandShade / max(uLand, vec3(1e-4)));
+	vec3 lit = mix(uOcean, country, land);
+	vec3 shade = mix(uOceanShade, countryShade, land);
 	vec3 color = mix(shade, lit, band);
 
 	// Halftone: dots in screen space, growing as light falls in the shadow band.
