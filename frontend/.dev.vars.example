@@ -1,0 +1,5 @@
+# Copy to .dev.vars for local development (`bun run dev`).
+# Backend on this PC: point straight at it. Backend elsewhere: use its tunnel URL.
+BACKEND_URL=http://localhost:8000
+# Shared secret the backend checks in the X-Backend-Secret header. Leave empty to disable.
+BACKEND_SECRET=
