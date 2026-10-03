@@ -1,0 +1,18 @@
+[project]
+name = "backend-compsoc"
+version = "0.1.0"
+description = "Ada's Eye backend for the compsoc view: environmental disasters and anomalies"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.115",
+    "pydantic>=2.9,<3",
+    "python-dotenv>=1.0",
+    "numpy>=2.0",
+    "pillow>=11.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.13.1",
+]
