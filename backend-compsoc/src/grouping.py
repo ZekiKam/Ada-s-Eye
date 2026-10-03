@@ -13,7 +13,8 @@ import statistics
 from dataclasses import dataclass
 from datetime import datetime
 
-from anomalies import EARTH_RADIUS_KM, AnomalousDetection, haversine_km
+from anomalies import AnomalousDetection
+from datasets import EARTH_RADIUS_KM, haversine_km
 
 
 @dataclass(frozen=True, eq=False)

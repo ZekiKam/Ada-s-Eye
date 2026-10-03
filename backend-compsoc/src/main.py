@@ -4,14 +4,8 @@ from datetime import datetime, time, timezone
 from pathlib import Path
 from typing import Annotated
 
-from anomalies import (
-    AnomalousDetection,
-    Wildfire,
-    find_anomalies,
-    haversine_km,
-    load_detections,
-    load_wildfires,
-)
+from anomalies import AnomalousDetection, find_anomalies
+from datasets import Wildfire, haversine_km, load_detections, load_wildfires
 from dryness import load_dryness
 from fastapi import FastAPI, HTTPException, Query
 from grouping import AnomalyGroup, group_anomalies
