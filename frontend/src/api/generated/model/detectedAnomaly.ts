@@ -4,15 +4,20 @@
  * FastAPI
  * OpenAPI spec version: 0.1.0
  */
+import type { DetectedAnomalyReasonsItem } from './detectedAnomalyReasonsItem';
 
 /**
- * A hot satellite detection with no recorded wildfire nearby at that time.
+ * A satellite detection that is hot with no recorded wildfire nearby, just
+ * beyond a wildfire in a dry place, or far more intense than normal.
  */
 export interface DetectedAnomaly {
   longitude: number;
   latitude: number;
   event_time: string;
   brightness: number;
+  frp: number | null;
   confidence: number;
+  satellite_confidence: number;
   radius: number;
+  reasons: DetectedAnomalyReasonsItem[];
 }

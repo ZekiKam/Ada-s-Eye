@@ -4,10 +4,17 @@
  * FastAPI
  * OpenAPI spec version: 0.1.0
  */
+import type { LeaderboardClaim } from './leaderboardClaim';
 
+/**
+ * The largest anomaly near a queried spot: its middle and radius. With
+ * none, the queried spot and the radius searched, at confidence 0.
+ */
 export interface Anomaly {
   longitude: number;
   latitude: number;
   confidence: number;
   radius: number;
+  distance: number;
+  claim?: LeaderboardClaim | null;
 }

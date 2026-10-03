@@ -15,15 +15,22 @@ interface GlobeState {
 	selected: Selection | null;
 	hoveredKey: string | null;
 	flight: Flight | null;
+	/**
+	 * Tokens for leaderboard entries this visitor found, by entry id. Only the
+	 * finder gets one, and it is needed to name the entry. Lost on reload.
+	 */
+	claims: Record<string, string>;
 	/** Selecting also flies the camera there. */
 	select(selection: Selection | null): void;
 	hover(key: string | null): void;
+	claim(id: string, token: string): void;
 }
 
 export const useGlobeStore = create<GlobeState>()((set) => ({
 	selected: null,
 	hoveredKey: null,
 	flight: null,
+	claims: {},
 
 	select: (selected) =>
 		set((s) =>
@@ -40,4 +47,6 @@ export const useGlobeStore = create<GlobeState>()((set) => ({
 		),
 
 	hover: (hoveredKey) => set({ hoveredKey }),
+
+	claim: (id, token) => set((s) => ({ claims: { ...s.claims, [id]: token } })),
 }));

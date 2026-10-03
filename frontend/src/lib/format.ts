@@ -28,3 +28,8 @@ export function formatAge(unixSeconds: number, nowMs: number): string {
 	if (s < 7 * 86400) return `${Math.floor(s / 86400)} d ago`;
 	return DATE.format(unixSeconds * 1000);
 }
+
+/** "11 Mar 2011", from an ISO 8601 string. */
+export function formatDate(iso: string): string {
+	return DATE.format(Date.parse(iso));
+}

@@ -79,9 +79,15 @@ export interface MarkerStyle {
 	/** Selected-spot ring, over a wider ink halo, as multiples of the marker radius. */
 	selectionRing: readonly [inner: number, outer: number];
 	selectionHalo: readonly [inner: number, outer: number];
-	/** True-scale footprint ring. */
+	/** Fire size ring (wildfires and found anomalies), and the dashed area searched. */
 	footprintWidth: number;
 	footprintOpacity: number;
+	/**
+	 * Until a fire's ring is large enough to see at true scale, its radius in
+	 * marker radii is `base + perSqrtKm * sqrt(radius in km)`, so bigger fires
+	 * stay bigger at every zoom.
+	 */
+	sizeRing: { base: number; perSqrtKm: number };
 	/** Seconds per pulse for new events. */
 	pulsePeriod: number;
 	/** How far a pulse grows, as a multiple of the marker radius. */
@@ -151,6 +157,7 @@ const engraving: GlobeStyle = {
 		selectionHalo: [1.9, 2.85],
 		footprintWidth: 1.4,
 		footprintOpacity: 0.9,
+		sizeRing: { base: 1.7, perSqrtKm: 0.6 },
 		pulsePeriod: 1.6,
 		pulseReach: 5,
 		appearMs: 220,

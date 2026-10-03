@@ -76,15 +76,82 @@ function worldPerPixel(
 }
 
 /** Position and outward-facing orientation for a marker at a place. */
-function useAnchor(longitude: number, latitude: number) {
+function useAnchor(
+	longitude: number,
+	latitude: number,
+	altitude: number = ALTITUDE.marker,
+) {
 	return useMemo(() => {
-		const position = lonLatToVector3(longitude, latitude, ALTITUDE.marker);
+		const position = lonLatToVector3(longitude, latitude, altitude);
 		const quaternion = new Quaternion().setFromUnitVectors(
 			OUTWARD,
 			position.clone().normalize(),
 		);
 		return { position, quaternion };
-	}, [longitude, latitude]);
+	}, [longitude, latitude, altitude]);
+}
+
+/** A unit circle in the XY plane, for `SizeRing` to scale. */
+const UNIT_CIRCLE = Array.from({ length: 65 }, (_, i) => {
+	const a = (i / 64) * 2 * Math.PI;
+	return [Math.cos(a), Math.sin(a), 0] as [number, number, number];
+});
+
+interface SizeRingProps {
+	longitude: number;
+	latitude: number;
+	/** Metres. */
+	radius: number;
+	color: string;
+	style: GlobeStyle;
+}
+
+/**
+ * A ring around a fire showing its radius: true to scale once that is big
+ * enough to see, and before then a symbol that grows with the radius
+ * (`sizeRing` in the globe style), so fires still compare when zoomed out.
+ * Never smaller than the fire.
+ */
+function SizeRing({
+	longitude,
+	latitude,
+	radius,
+	color,
+	style,
+}: SizeRingProps) {
+	const m = style.marker;
+	const { position, quaternion } = useAnchor(
+		longitude,
+		latitude,
+		ALTITUDE.footprint,
+	);
+	const ring = useRef<Group>(null);
+	// The globe has radius 1.
+	const trueScale = radius / EARTH_RADIUS_M;
+	const symbolPx =
+		m.sizePx *
+		(m.sizeRing.base + m.sizeRing.perSqrtKm * Math.sqrt(radius / 1000));
+
+	useFrame(({ camera, size }) => {
+		const group = ring.current;
+		if (!group) return;
+		group.scale.setScalar(
+			Math.max(trueScale, symbolPx * worldPerPixel(camera, size.height, group)),
+		);
+	});
+
+	return (
+		<group ref={ring} position={position} quaternion={quaternion} scale={0}>
+			<Line
+				points={UNIT_CIRCLE}
+				color={color}
+				lineWidth={m.footprintWidth}
+				transparent
+				opacity={m.footprintOpacity}
+				depthWrite={false}
+			/>
+		</group>
+	);
 }
 
 /** Keeps the query button this far inside the screen edge. */
@@ -241,9 +308,9 @@ function SpotMarker({ spot, style, reducedMotion }: SpotMarkerProps) {
 }
 
 /**
- * The anomaly query's answer, true to scale around the spot: a solid ring
- * reaching the anomaly when one was found, or a dashed ring around the
- * whole area searched when none was.
+ * The anomaly query's answer: the anomaly found, as a dot in a ring showing
+ * its radius, or a dashed ring true to scale around the whole area searched
+ * when none was.
  */
 function AnomalyFootprint({
 	anomaly,
@@ -252,9 +319,37 @@ function AnomalyFootprint({
 	anomaly: Anomaly;
 	style: GlobeStyle;
 }) {
-	const { longitude, latitude, radius, confidence } = anomaly;
+	if (anomaly.confidence === 0)
+		return <SearchedArea anomaly={anomaly} style={style} />;
+	const color = toneColor(ANOMALY.tone);
+	return (
+		<group>
+			<SizeRing
+				longitude={anomaly.longitude}
+				latitude={anomaly.latitude}
+				radius={anomaly.radius}
+				color={color}
+				style={style}
+			/>
+			<FireDot
+				longitude={anomaly.longitude}
+				latitude={anomaly.latitude}
+				color={color}
+				style={style}
+			/>
+		</group>
+	);
+}
+
+function SearchedArea({
+	anomaly,
+	style,
+}: {
+	anomaly: Anomaly;
+	style: GlobeStyle;
+}) {
+	const { longitude, latitude, radius } = anomaly;
 	const m = style.marker;
-	const found = confidence > 0;
 	const points = useMemo(
 		() => footprintLoop(longitude, latitude, radius, ALTITUDE.footprint),
 		[longitude, latitude, radius],
@@ -265,15 +360,53 @@ function AnomalyFootprint({
 	return (
 		<Line
 			points={points}
-			color={found ? toneColor(ANOMALY.tone) : style.marker.spotColor}
+			color={m.spotColor}
 			lineWidth={m.footprintWidth}
 			transparent
 			opacity={m.footprintOpacity}
 			depthWrite={false}
-			dashed={!found}
+			dashed
 			dashSize={dash}
 			gapSize={dash}
 		/>
+	);
+}
+
+/** A marker-sized dot over an ink outline, constant on screen, with no handlers. */
+function FireDot({
+	longitude,
+	latitude,
+	color,
+	style,
+}: {
+	longitude: number;
+	latitude: number;
+	color: string;
+	style: GlobeStyle;
+}) {
+	const m = style.marker;
+	const { position, quaternion } = useAnchor(longitude, latitude);
+	const scaled = useRef<Group>(null);
+
+	useFrame(({ camera, size }) => {
+		const group = scaled.current;
+		if (!group) return;
+		group.scale.setScalar(m.sizePx * worldPerPixel(camera, size.height, group));
+	});
+
+	return (
+		<group position={position} quaternion={quaternion}>
+			<group ref={scaled} scale={0}>
+				<mesh renderOrder={2}>
+					<circleGeometry args={[m.outline, 32]} />
+					<meshBasicMaterial color={style.ink} transparent depthWrite={false} />
+				</mesh>
+				<mesh renderOrder={3}>
+					<circleGeometry args={[1, 32]} />
+					<meshBasicMaterial color={color} transparent depthWrite={false} />
+				</mesh>
+			</group>
+		</group>
 	);
 }
 
@@ -285,7 +418,7 @@ interface EventMarkerProps {
 }
 
 /**
- * A wildfire: marker, true-scale footprint and a tooltip on hover. Clicks
+ * A wildfire: marker, a ring showing its radius and a tooltip on hover. Clicks
  * pass through to the globe, so a double-click here queries the spot.
  */
 function EventMarker({ id, event, style, reducedMotion }: EventMarkerProps) {
@@ -298,10 +431,6 @@ function EventMarker({ id, event, style, reducedMotion }: EventMarkerProps) {
 	const hover = useGlobeStore((s) => s.hover);
 
 	const { position, quaternion } = useAnchor(longitude, latitude);
-	const footprint = useMemo(
-		() => footprintLoop(longitude, latitude, radius, ALTITUDE.footprint),
-		[longitude, latitude, radius],
-	);
 
 	const scaled = useRef<Group>(null);
 	const pulse = useRef<Mesh>(null);
@@ -350,13 +479,12 @@ function EventMarker({ id, event, style, reducedMotion }: EventMarkerProps) {
 	// labels (also transparent) by renderOrder and draw on top of them.
 	return (
 		<group>
-			<Line
-				points={footprint}
+			<SizeRing
+				longitude={longitude}
+				latitude={latitude}
+				radius={radius}
 				color={color}
-				lineWidth={m.footprintWidth}
-				transparent
-				opacity={m.footprintOpacity}
-				depthWrite={false}
+				style={style}
 			/>
 			<group position={position} quaternion={quaternion}>
 				<group ref={scaled} scale={0}>

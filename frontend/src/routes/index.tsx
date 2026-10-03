@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import type { LeaderboardEntry } from "@/api/generated/model";
 import { FIRST_YEAR, LAST_YEAR } from "@/config";
 import { useEvents } from "@/data/useEvents";
 import { GlobeCanvas } from "@/globe/GlobeCanvas";
+import { Leaderboard } from "@/hud/Leaderboard";
 import { Timeline } from "@/hud/Timeline";
 import { Wordmark } from "@/hud/Wordmark";
 import { usePrefersReducedMotion } from "@/lib/hooks";
@@ -63,6 +65,17 @@ function HomePage() {
 		navigate({ search: { year: next }, replace: true });
 	};
 
+	// The anomaly's own spot, in the (UTC) year it was detected.
+	const pickEntry = (entry: LeaderboardEntry) => {
+		const entryYear = new Date(entry.event_time).getUTCFullYear();
+		navigate({ search: { year: entryYear }, replace: true });
+		select({
+			longitude: round(entry.longitude),
+			latitude: round(entry.latitude),
+			year: entryYear,
+		});
+	};
+
 	const reducedMotion = usePrefersReducedMotion();
 	const [introDone, setIntroDone] = useState(false);
 	const settled = introDone || reducedMotion;
@@ -106,7 +119,16 @@ function HomePage() {
 					</div>
 				</div>
 
-				{/* Arrives with the globe. */}
+				{/* Arrives with the globe, as does the timeline. */}
+				<div
+					className={cn(
+						"absolute top-(--hud-top) right-(--hud-right) max-w-[calc(100vw-var(--hud-left)-var(--hud-right))] transition-opacity duration-700",
+						!settled && "invisible opacity-0",
+					)}
+				>
+					<Leaderboard onPick={pickEntry} />
+				</div>
+
 				<div
 					className={cn(
 						"absolute right-(--hud-right) bottom-(--hud-bottom) left-(--hud-left) mx-auto max-w-5xl transition-opacity duration-700",

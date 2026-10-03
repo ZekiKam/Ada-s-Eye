@@ -5,16 +5,20 @@
  * OpenAPI spec version: 0.1.0
  */
 import {
+  useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
@@ -24,6 +28,8 @@ import type {
   DetectedAnomaly,
   GlobePoint,
   HTTPValidationError,
+  LeaderboardEntry,
+  NameEntry,
   RequestAnomalyParams
 } from './model';
 
@@ -267,8 +273,12 @@ export const getRequestAnomalyUrl = (params: RequestAnomalyParams,) => {
 }
 
 /**
- * The most confident anomaly near this spot in this year, or confidence 0
- * over the whole search radius if there is none.
+ * The largest anomaly (a group of anomalous detections, see grouping.py)
+ * that started in that year with its middle within the search radius of the
+ * queried spot: its middle, radius and distance. With none, the queried spot
+ * and the search radius at confidence 0. An anomaly found for the first time
+ * that is among the largest goes on the leaderboard, and `claim` holds the
+ * token to name it.
  * @summary Request Anomaly
  */
 export const requestAnomaly = async (params: RequestAnomalyParams, options?: Parameters<typeof customFetch>[1]): Promise<Anomaly> => {
@@ -360,4 +370,197 @@ export function useRequestAnomaly<TData = Awaited<ReturnType<typeof requestAnoma
 
 
 
+
+export const getGetLeaderboardUrl = () => {
+
+
+
+
+  return `/api/leaderboard`
+}
+
+/**
+ * The largest anomalies found so far, largest first. Kept in memory, so
+ * it empties when the server restarts.
+ * @summary Get Leaderboard
+ */
+export const getLeaderboard = async ( options?: Parameters<typeof customFetch>[1]): Promise<LeaderboardEntry[]> => {
+
+  return customFetch<LeaderboardEntry[]>(getGetLeaderboardUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLeaderboardQueryKey = () => {
+    return [
+    `/api/leaderboard`
+    ] as const;
+    }
+
+
+export const getGetLeaderboardQueryOptions = <TData = Awaited<ReturnType<typeof getLeaderboard>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLeaderboard>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLeaderboardQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLeaderboard>>> = ({ signal }) => getLeaderboard({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLeaderboard>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetLeaderboardQueryResult = NonNullable<Awaited<ReturnType<typeof getLeaderboard>>>
+export type GetLeaderboardQueryError = unknown
+
+
+export function useGetLeaderboard<TData = Awaited<ReturnType<typeof getLeaderboard>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLeaderboard>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLeaderboard>>,
+          TError,
+          Awaited<ReturnType<typeof getLeaderboard>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetLeaderboard<TData = Awaited<ReturnType<typeof getLeaderboard>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLeaderboard>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLeaderboard>>,
+          TError,
+          Awaited<ReturnType<typeof getLeaderboard>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetLeaderboard<TData = Awaited<ReturnType<typeof getLeaderboard>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLeaderboard>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get Leaderboard
+ */
+
+export function useGetLeaderboard<TData = Awaited<ReturnType<typeof getLeaderboard>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLeaderboard>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetLeaderboardQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getNameLeaderboardEntryUrl = (entryId: string,) => {
+
+
+
+
+  return `/api/leaderboard/${entryId}/name`
+}
+
+/**
+ * Names an entry, once, with the token its finder was given.
+ * @summary Name Leaderboard Entry
+ */
+export const nameLeaderboardEntry = async (entryId: string,
+    nameEntry: NameEntry, options?: Parameters<typeof customFetch>[1]): Promise<LeaderboardEntry> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<LeaderboardEntry>(getNameLeaderboardEntryUrl(entryId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(nameEntry)
+  }
+);}
+
+
+
+
+
+export const getNameLeaderboardEntryMutationKey = () => ['nameLeaderboardEntry'] as const;
+
+export const getNameLeaderboardEntryMutationOptions = <TError = HTTPValidationError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof nameLeaderboardEntry>>, TError,NameLeaderboardEntryMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof nameLeaderboardEntry>>, TError,NameLeaderboardEntryMutationVariables, TContext> => {
+
+const mutationKey = getNameLeaderboardEntryMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof nameLeaderboardEntry>>, NameLeaderboardEntryMutationVariables> = (props) => {
+          const {entryId,data} = props ?? {};
+
+          return  nameLeaderboardEntry(entryId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type NameLeaderboardEntryMutationResult = NonNullable<Awaited<ReturnType<typeof nameLeaderboardEntry>>>
+    export type NameLeaderboardEntryMutationBody = NameEntry
+    export type NameLeaderboardEntryMutationError = HTTPValidationError
+    export type NameLeaderboardEntryMutationVariables = {entryId: string;data: NameEntry}
+
+    /**
+ * @summary Name Leaderboard Entry
+ */
+export const useNameLeaderboardEntry = <TError = HTTPValidationError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof nameLeaderboardEntry>>, TError,NameLeaderboardEntryMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof nameLeaderboardEntry>>,
+        TError,
+        NameLeaderboardEntryMutationVariables,
+        TContext
+      > => {
+      return useMutation(getNameLeaderboardEntryMutationOptions(options), queryClient);
+    }
 

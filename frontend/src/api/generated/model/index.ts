@@ -7,8 +7,12 @@
 
 export * from './anomaly';
 export * from './detectedAnomaly';
+export * from './detectedAnomalyReasonsItem';
 export * from './globePoint';
 export * from './hTTPValidationError';
+export * from './leaderboardClaim';
+export * from './leaderboardEntry';
+export * from './nameEntry';
 export * from './requestAnomalyParams';
 export * from './validationError';
 export * from './validationErrorCtx';

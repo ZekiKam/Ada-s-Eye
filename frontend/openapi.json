@@ -52,7 +52,7 @@
     "/api/request_anomaly": {
       "get": {
         "summary": "Request Anomaly",
-        "description": "The most confident anomaly near this spot in this year, or confidence 0\nover the whole search radius if there is none.",
+        "description": "The largest anomaly (a group of anomalous detections, see grouping.py)\nthat started in that year with its middle within the search radius of the\nqueried spot: its middle, radius and distance. With none, the queried spot\nand the search radius at confidence 0. An anomaly found for the first time\nthat is among the largest goes on the leaderboard, and `claim` holds the\ntoken to name it.",
         "operationId": "requestAnomaly",
         "parameters": [
           {
@@ -106,6 +106,79 @@
           }
         }
       }
+    },
+    "/api/leaderboard": {
+      "get": {
+        "summary": "Get Leaderboard",
+        "description": "The largest anomalies found so far, largest first. Kept in memory, so\nit empties when the server restarts.",
+        "operationId": "getLeaderboard",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LeaderboardEntry"
+                  },
+                  "type": "array",
+                  "title": "Response Getleaderboard"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leaderboard/{entry_id}/name": {
+      "put": {
+        "summary": "Name Leaderboard Entry",
+        "description": "Names an entry, once, with the token its finder was given.",
+        "operationId": "nameLeaderboardEntry",
+        "parameters": [
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NameEntry"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaderboardEntry"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -127,6 +200,20 @@
           "radius": {
             "type": "number",
             "title": "Radius"
+          },
+          "distance": {
+            "type": "number",
+            "title": "Distance"
+          },
+          "claim": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeaderboardClaim"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -134,9 +221,11 @@
           "longitude",
           "latitude",
           "confidence",
-          "radius"
+          "radius",
+          "distance"
         ],
-        "title": "Anomaly"
+        "title": "Anomaly",
+        "description": "The largest anomaly near a queried spot: its middle and radius. With\nnone, the queried spot and the radius searched, at confidence 0."
       },
       "DetectedAnomaly": {
         "properties": {
@@ -156,13 +245,40 @@
             "type": "number",
             "title": "Brightness"
           },
+          "frp": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frp"
+          },
           "confidence": {
             "type": "number",
             "title": "Confidence"
           },
+          "satellite_confidence": {
+            "type": "number",
+            "title": "Satellite Confidence"
+          },
           "radius": {
             "type": "number",
             "title": "Radius"
+          },
+          "reasons": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "hot",
+                "spreading",
+                "intense"
+              ]
+            },
+            "type": "array",
+            "title": "Reasons"
           }
         },
         "type": "object",
@@ -171,11 +287,14 @@
           "latitude",
           "event_time",
           "brightness",
+          "frp",
           "confidence",
-          "radius"
+          "satellite_confidence",
+          "radius",
+          "reasons"
         ],
         "title": "DetectedAnomaly",
-        "description": "A hot satellite detection with no recorded wildfire nearby at that time."
+        "description": "A satellite detection that is hot with no recorded wildfire nearby, just\nbeyond a wildfire in a dry place, or far more intense than normal."
       },
       "GlobePoint": {
         "properties": {
@@ -217,6 +336,111 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "LeaderboardClaim": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "rank": {
+            "type": "integer",
+            "title": "Rank"
+          },
+          "token": {
+            "type": "string",
+            "title": "Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "rank",
+          "token"
+        ],
+        "title": "LeaderboardClaim",
+        "description": "The anomaly a query found made the leaderboard. Only the finder gets\nthe token, which names the entry."
+      },
+      "LeaderboardEntry": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "rank": {
+            "type": "integer",
+            "title": "Rank"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "longitude": {
+            "type": "number",
+            "title": "Longitude"
+          },
+          "latitude": {
+            "type": "number",
+            "title": "Latitude"
+          },
+          "event_time": {
+            "type": "string",
+            "title": "Event Time"
+          },
+          "radius": {
+            "type": "number",
+            "title": "Radius"
+          },
+          "detections": {
+            "type": "integer",
+            "title": "Detections"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "rank",
+          "name",
+          "longitude",
+          "latitude",
+          "event_time",
+          "radius",
+          "detections",
+          "confidence"
+        ],
+        "title": "LeaderboardEntry",
+        "description": "One of the largest anomalies found so far."
+      },
+      "NameEntry": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 24,
+            "minLength": 1,
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "name"
+        ],
+        "title": "NameEntry"
       },
       "ValidationError": {
         "properties": {

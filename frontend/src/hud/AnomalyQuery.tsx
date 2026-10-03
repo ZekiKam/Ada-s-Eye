@@ -1,19 +1,22 @@
-import { Radar } from "lucide-react";
-import { type ReactNode, useState } from "react";
-import { useRequestAnomaly } from "@/api/generated";
-import type { Anomaly } from "@/api/generated/model";
+import { useQueryClient } from "@tanstack/react-query";
+import { Radar, Trophy } from "lucide-react";
+import { type ReactNode, useEffect, useState } from "react";
+import { getGetLeaderboardQueryKey, useRequestAnomaly } from "@/api/generated";
+import type { Anomaly, LeaderboardClaim } from "@/api/generated/model";
 import { ANOMALY } from "@/data/events";
+import { ClaimName } from "@/hud/Leaderboard";
 import { formatDistance, formatLonLat } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { Selection } from "@/state/store";
+import { type Selection, useGlobeStore } from "@/state/store";
 import { toneVar } from "@/theme/tones";
 
 /**
- * Asks the backend how likely an anomaly is at the selected spot in the
+ * Asks the backend for the largest anomaly around the selected spot in the
  * selected year, and shows the answer below the button. Nothing is sent
  * until the button is pressed; pressing again re-runs the query. Mount it
  * keyed by the selection so a new one starts fresh. `SpotMarker` draws the
- * same answer on the globe.
+ * same answer on the globe. An anomaly that makes the leaderboard can be
+ * named here.
  */
 export function AnomalyQuery({ selection }: { selection: Selection }) {
 	const [asked, setAsked] = useState(false);
@@ -27,6 +30,21 @@ export function AnomalyQuery({ selection }: { selection: Selection }) {
 	});
 	const { longitude, latitude, year } = selection;
 
+	// The token only comes once, with the find (asking again returns none),
+	// so keep it here and for the rest of the session.
+	const claim = useGlobeStore((s) => s.claim);
+	const queryClient = useQueryClient();
+	const [placed, setPlaced] = useState<LeaderboardClaim | null>(null);
+	const found = query.data?.claim;
+	useEffect(() => {
+		if (!found) return;
+		setPlaced(found);
+		claim(found.id, found.token);
+		void queryClient.invalidateQueries({
+			queryKey: getGetLeaderboardQueryKey(),
+		});
+	}, [found, claim, queryClient]);
+
 	let result: ReactNode = null;
 	if (query.isFetching)
 		result = <p className="label-caps text-muted-foreground">Querying…</p>;
@@ -35,7 +53,7 @@ export function AnomalyQuery({ selection }: { selection: Selection }) {
 			<p className="label-caps text-tone-danger">{query.error.message}</p>
 		);
 	else if (query.data)
-		result = <AnomalyResult anomaly={query.data} year={year} />;
+		result = <AnomalyResult anomaly={query.data} year={year} placed={placed} />;
 
 	return (
 		<div className="pointer-events-auto engraved flex min-w-60 animate-in flex-col border border-border bg-panel fade-in whitespace-nowrap transition-colors duration-150 has-[button:enabled:hover]:border-foreground motion-reduce:animate-none">
@@ -71,9 +89,19 @@ export function AnomalyQuery({ selection }: { selection: Selection }) {
 	);
 }
 
-/** Confidence as a large figure and a meter, and how far out it was found. */
-function AnomalyResult({ anomaly, year }: { anomaly: Anomaly; year: number }) {
-	const percent = Math.round(anomaly.confidence * 100);
+/**
+ * The anomaly's radius as a large figure, and how far from the spot its
+ * middle is. Below, the leaderboard place it took, if any.
+ */
+function AnomalyResult({
+	anomaly,
+	year,
+	placed,
+}: {
+	anomaly: Anomaly;
+	year: number;
+	placed: LeaderboardClaim | null;
+}) {
 	const found = anomaly.confidence > 0;
 	const tone = toneVar(found ? ANOMALY.tone : "neutral");
 
@@ -85,27 +113,36 @@ function AnomalyResult({ anomaly, year }: { anomaly: Anomaly; year: number }) {
 						{found ? ANOMALY.label : `No ${ANOMALY.label}`}
 					</span>
 					<span className="font-mono text-xs text-muted-foreground">
-						{found ? "Within" : "None within"} {formatDistance(anomaly.radius)}{" "}
+						{found
+							? `${formatDistance(anomaly.distance)} away`
+							: `None within ${formatDistance(anomaly.radius)}`}{" "}
 						in {year}
 					</span>
 				</div>
-				<span className="flex flex-col items-end">
+				{found && (
+					<span className="flex flex-col items-end">
+						<span
+							className="font-display text-3xl leading-none tabular-nums"
+							style={{ color: tone }}
+						>
+							{formatDistance(anomaly.radius)}
+						</span>
+						<span className="label-caps text-muted-foreground">Radius</span>
+					</span>
+				)}
+			</div>
+			{placed && (
+				<div className="flex flex-col gap-1.5 pt-1">
 					<span
-						className="font-display text-3xl leading-none tabular-nums"
+						className="label-caps flex items-center gap-2"
 						style={{ color: tone }}
 					>
-						{percent}%
+						<Trophy aria-hidden className="size-3.5" />
+						New No. {placed.rank} on the leaderboard
 					</span>
-					<span className="label-caps text-muted-foreground">Confidence</span>
-				</span>
-			</div>
-			{/* The figure above carries the value; the bar only repeats it. */}
-			<div aria-hidden className="h-1 bg-muted">
-				<div
-					className="h-full"
-					style={{ width: `${percent}%`, background: tone }}
-				/>
-			</div>
+					<ClaimName entryId={placed.id} />
+				</div>
+			)}
 		</div>
 	);
 }
