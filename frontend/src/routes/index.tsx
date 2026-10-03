@@ -4,7 +4,6 @@ import { DEFAULT_WINDOW_S, WINDOW_OPTIONS, type WindowSeconds } from "@/config";
 import { useEvents } from "@/data/useEvents";
 import { GlobeCanvas } from "@/globe/GlobeCanvas";
 import { Legend } from "@/hud/Legend";
-import { TimeWindow } from "@/hud/TimeWindow";
 import { Wordmark } from "@/hud/Wordmark";
 import { useGlobeStore } from "@/state/store";
 
@@ -27,7 +26,6 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   const search = Route.useSearch();
-  const navigate = Route.useNavigate();
   const windowSeconds = search.window ?? DEFAULT_WINDOW_S;
 
   const { events } = useEvents(windowSeconds);
@@ -38,9 +36,6 @@ function HomePage() {
   );
 
   const select = useGlobeStore((s) => s.select);
-
-  const setWindow = (seconds: WindowSeconds) =>
-    navigate({ search: (prev) => ({ ...prev, window: seconds }) });
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
