@@ -36,6 +36,7 @@ uniform float uRimWidth;
 uniform float uRimStrength;
 uniform float uGrain;
 uniform float uPixelRatio;
+uniform float uReveal;
 
 varying vec2 vUv;
 varying vec3 vViewNormal;
@@ -47,7 +48,8 @@ float hash(vec2 p) {
 
 void main() {
 	float mask = texture2D(uLandMask, vUv).r;
-	float land = smoothstep(0.35, 0.65, mask);
+	// uReveal fades land in over the ocean once the atlas arrives.
+	float land = smoothstep(0.35, 0.65, mask) * uReveal;
 
 	vec3 n = normalize(vViewNormal);
 	float diffuse = max(dot(n, normalize(uLightDirection)), 0.0);

@@ -65,7 +65,8 @@ export function GlobeCanvas({ events }: GlobeCanvasProps) {
 
 	return (
 		<Canvas
-			className="absolute! inset-0"
+			// Fades in over the page; land and lines then fade in once the atlas loads.
+			className="absolute! inset-0 animate-in fade-in duration-1000"
 			flat
 			dpr={[1, 2]}
 			gl={{ antialias: true, alpha: true }}
@@ -81,10 +82,26 @@ export function GlobeCanvas({ events }: GlobeCanvasProps) {
 			/>
 			{atlas && (
 				<>
-					<GeoLines segments={atlas.graticule} style={style.graticule} />
-					<GeoLines segments={atlas.borders} style={style.borders} />
-					<GeoLines segments={atlas.coastlines} style={style.coastline} />
-					<CountryLabels labels={atlas.labels} style={style.labels} />
+					<GeoLines
+						segments={atlas.graticule}
+						style={style.graticule}
+						revealMs={style.revealMs}
+					/>
+					<GeoLines
+						segments={atlas.borders}
+						style={style.borders}
+						revealMs={style.revealMs}
+					/>
+					<GeoLines
+						segments={atlas.coastlines}
+						style={style.coastline}
+						revealMs={style.revealMs}
+					/>
+					<CountryLabels
+						labels={atlas.labels}
+						style={style.labels}
+						revealMs={style.revealMs}
+					/>
 				</>
 			)}
 			<PointsLayer

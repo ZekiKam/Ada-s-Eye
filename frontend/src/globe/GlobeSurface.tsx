@@ -15,6 +15,7 @@ import {
 } from "three";
 import type { GlobeStyle } from "@/theme/globe-style";
 import { surfaceFragmentShader, surfaceVertexShader } from "./shaders/surface";
+import { useReveal } from "./useReveal";
 
 /** One-pixel placeholder until the atlas arrives. Black mask is all ocean. */
 function placeholder(): Texture {
@@ -74,6 +75,7 @@ export function GlobeSurface({
 					uRimStrength: { value: 0 },
 					uGrain: { value: 0 },
 					uPixelRatio: { value: 1 },
+					uReveal: { value: 0 },
 				},
 			}),
 		[],
@@ -100,6 +102,13 @@ export function GlobeSurface({
 
 	useCanvasUniform(material, "uLandMask", landMask, NoColorSpace);
 	useCanvasUniform(material, "uCountryMap", countryMap, SRGBColorSpace);
+	useReveal(
+		style.revealMs,
+		(t) => {
+			material.uniforms.uReveal.value = t;
+		},
+		landMask !== null && countryMap !== null,
+	);
 
 	useEffect(() => () => material.dispose(), [material]);
 

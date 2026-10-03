@@ -11,6 +11,7 @@ import {
 } from "three";
 import type { LabelStyle } from "@/theme/globe-style";
 import { ALTITUDE, type CountryLabel, lonLatToVector3 } from "../geo";
+import { useReveal } from "../useReveal";
 
 /** The parts of troika's Text mesh driven per frame. */
 type TroikaText = Mesh & {
@@ -23,6 +24,8 @@ type TroikaText = Mesh & {
 interface CountryLabelsProps {
 	labels: readonly CountryLabel[];
 	style: LabelStyle;
+	/** Fade-in on mount. */
+	revealMs: number;
 }
 
 const DEG = Math.PI / 180;
@@ -52,7 +55,7 @@ const smoothstep = (lo: number, hi: number, x: number) => {
  * screen at the current zoom, and doesn't collide with a larger country's
  * name. Labels arrive largest first, so big countries win.
  */
-export function CountryLabels({ labels, style }: CountryLabelsProps) {
+export function CountryLabels({ labels, style, revealMs }: CountryLabelsProps) {
 	const frames = useMemo(
 		() =>
 			labels.map((label) => {
@@ -69,6 +72,10 @@ export function CountryLabels({ labels, style }: CountryLabelsProps) {
 	const texts = useRef<(TroikaText | null)[]>([]);
 	/** Collision fade per label, 0 to 1. */
 	const shown = useRef<number[]>([]);
+	const reveal = useRef(0);
+	useReveal(revealMs, (t) => {
+		reveal.current = t;
+	});
 
 	useFrame(({ camera, size }, delta) => {
 		const fov = (camera as PerspectiveCamera).fov ?? 40;
@@ -118,7 +125,8 @@ export function CountryLabels({ labels, style }: CountryLabelsProps) {
 				target > current
 					? Math.min(target, current + step)
 					: Math.max(target, current - step);
-			const opacity = shown.current[i] * smoothstep(hidden, opaque, facing);
+			const opacity =
+				reveal.current * shown.current[i] * smoothstep(hidden, opaque, facing);
 
 			group.visible = opacity > 0;
 			if (!group.visible) continue;

@@ -42,6 +42,8 @@ export interface GlobeStyle {
 	marker: MarkerStyle;
 	labels: LabelStyle;
 	stars: StarStyle;
+	/** Fade-in for land, lines and labels once the atlas has loaded. */
+	revealMs: number;
 }
 
 export interface StarStyle {
@@ -132,6 +134,7 @@ const engraving: GlobeStyle = {
 	rimWidth: 0.11,
 	rimStrength: 1,
 	grain: 0.045,
+	revealMs: 900,
 	coastline: { color: INK, width: 1.1, opacity: 1 },
 	borders: { color: INK, width: 0.6, opacity: 0.45 },
 	graticule: { color: BONE, width: 0.6, opacity: 0.16 },
