@@ -15,11 +15,11 @@
 		"enabled": true
 	},
 	"upload_source_maps": true,
-	// Public hostname of the Cloudflare Tunnel in front of the backend PC.
-	// Overridden in local dev by .dev.vars. BACKEND_SECRET is set with
-	// `wrangler secret put BACKEND_SECRET`.
+	// Public hostname of the backend's Cloudflare Tunnel. The Worker forwards
+	// /api/* to it. Overridden in local dev by .dev.vars. BACKEND_SECRET is set
+	// with `wrangler secret put BACKEND_SECRET`.
 	"vars": {
-		"BACKEND_URL": "https://api.YOUR-DOMAIN.com"
+		"BACKEND_URL": "https://compsoc-api.YOUR-DOMAIN.com"
 	}
 	/**
 	 * Smart Placement
