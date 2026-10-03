@@ -15,7 +15,6 @@ class FoundAnomaly:
     latitude: float
     radius_km: float
     start: datetime  # first detection
-    detections: int
     confidence: float  # 0 to 1
     intensity: float
 
@@ -23,7 +22,9 @@ class FoundAnomaly:
 
 EARTH_RADIUS_KM = 6371.0
 DISTANCE_TO_FIRE = 50
-BRIGHT
+BRIGHT_AVERAGE_THRESHOLD = 306
+CONFIDENCE_AVERAGE_THRESHOLD = 57
+FRP_AVERAGE_THRESHOLD = 8.6
 
 def haversine_km(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
@@ -57,15 +58,31 @@ def find_anomaly(
         if dist < DISTANCE_TO_FIRE:
             return None
 
+    largestAnomaly = None
+
     for detection in detections:
         dist = haversine_km(longitude, latitude, detection.longitude, detection.latitude)
 
         if dist > search_km:
             continue
 
-        if detection.brightness > 
+        if detection.brightness < BRIGHT_AVERAGE_THRESHOLD:
+            continue
+        elif detection.confidence < CONFIDENCE_AVERAGE_THRESHOLD:
+            continue
+        elif detection.frp < FRP_AVERAGE_THRESHOLD:
+            continue
 
+        if largestAnomaly and detection.radius_m / 1000 < largestAnomaly.radius_km:
+            continue
 
-
+        largestAnomaly = FoundAnomaly(
+            longitude= detection.longitude,
+            latitude= detection.latitude,
+            radius_km= detection.radius_m/1000,
+            start= detection.detected_at,
+            confidence= detection.confidence,
+            intensity= detection.brightness
+        )
         
     return None
