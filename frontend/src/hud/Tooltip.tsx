@@ -1,4 +1,4 @@
-import type { GlobeEvent } from "@/api/schema";
+import type { GlobePoint } from "@/api/schema";
 import type { Category } from "@/data/categories";
 import { formatAge, formatDistance } from "@/lib/format";
 import { toneVar } from "@/theme/tones";
@@ -7,7 +7,7 @@ export function Tooltip({
 	event,
 	category,
 }: {
-	event: GlobeEvent;
+	event: GlobePoint;
 	category: Category;
 }) {
 	return (

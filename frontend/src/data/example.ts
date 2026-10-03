@@ -1,9 +1,11 @@
-import type { GlobeEvent, Query } from "@/api/schema";
+import type { GlobePoint, Query } from "@/api/schema";
 
-/** An example event, timed relative to page load so it ages realistically. */
-export type ExampleEvent = Omit<GlobeEvent, "event_time"> & {
-	seconds_ago: number;
-};
+/**
+ * An example point. Recent ones are timed relative to page load so they age
+ * realistically; older ones carry a fixed UTC date ("2011-03-11").
+ */
+export type ExampleEvent = Omit<GlobePoint, "event_time"> &
+	({ seconds_ago: number } | { date: string });
 
 const LATENCY_MS = 120;
 
@@ -13,12 +15,16 @@ const LATENCY_MS = 120;
  */
 export function exampleSource(items: readonly ExampleEvent[]) {
 	const anchor = Math.floor(Date.now() / 1000);
-	const events: GlobeEvent[] = items.map(({ seconds_ago, ...rest }) => ({
-		...rest,
-		event_time: anchor - seconds_ago,
-	}));
+	const events: GlobePoint[] = items.map((item) => {
+		const { longitude, latitude, range, event_type } = item;
+		const event_time =
+			"date" in item
+				? Date.parse(`${item.date}T12:00:00Z`) / 1000
+				: anchor - item.seconds_ago;
+		return { longitude, latitude, range, event_type, event_time };
+	});
 
-	return async (query: Query, signal?: AbortSignal): Promise<GlobeEvent[]> => {
+	return async (query: Query, signal?: AbortSignal): Promise<GlobePoint[]> => {
 		await new Promise<void>((resolve, reject) => {
 			const timer = setTimeout(resolve, LATENCY_MS);
 			signal?.addEventListener("abort", () => {

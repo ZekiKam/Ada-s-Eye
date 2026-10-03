@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { GlobeEvent } from "@/api/schema";
+import type { GlobePoint } from "@/api/schema";
 import { POLL_INTERVAL_MS } from "@/config";
 import { exampleSource } from "./example";
 import { EXAMPLE_EVENTS } from "./example-events";
@@ -18,37 +18,39 @@ const fetchEvents = exampleSource(EXAMPLE_EVENTS);
 export type FeedStatus = "loading" | "live" | "stale" | "offline";
 
 export interface Events {
-	events: GlobeEvent[];
+	events: GlobePoint[];
 	status: FeedStatus;
 	/** Milliseconds since epoch of the data on screen, or 0 if none. */
 	updatedAt: number;
 	error: Error | null;
 }
 
-const NO_EVENTS: GlobeEvent[] = [];
+const NO_EVENTS: GlobePoint[] = [];
+
+/** First and last second of a calendar year, UTC, as UNIX timestamps. */
+export function yearRange(year: number): { start: number; end: number } {
+	return {
+		start: Date.UTC(year, 0, 1) / 1000,
+		end: Date.UTC(year + 1, 0, 1) / 1000 - 1,
+	};
+}
 
 /**
- * Polls the backend. The key holds the window length, not absolute times,
- * so it stays stable across polls and the globe never blanks: the absolute
- * range is computed at fetch time. Results stay in the query cache, so
- * switching back to a window shows its last data immediately.
+ * Fetches the points inside one calendar year. Only the year still under way
+ * is polled: earlier years are settled, so they are fetched once and stay in
+ * the query cache, and stepping back to one shows it immediately.
  */
-export function useEvents(windowSeconds: number): Events {
+export function useEvents(year: number): Events {
+	const { start, end } = yearRange(year);
+	const ongoing = Date.now() / 1000 <= end;
 	const query = useQuery({
-		queryKey: ["events", windowSeconds],
-		queryFn: ({ signal }) => {
-			const end = Math.floor(Date.now() / 1000);
-			return fetchEvents(
-				{ time_range_start: end - windowSeconds, time_range_end: end },
-				signal,
-			);
-		},
-		refetchInterval: POLL_INTERVAL_MS,
+		queryKey: ["events", year],
+		queryFn: ({ signal }) =>
+			fetchEvents({ time_range_start: start, time_range_end: end }, signal),
+		refetchInterval: ongoing ? POLL_INTERVAL_MS : false,
 		refetchIntervalInBackground: false,
-		staleTime: POLL_INTERVAL_MS,
+		staleTime: ongoing ? POLL_INTERVAL_MS : Number.POSITIVE_INFINITY,
 		retry: 1,
-		// Keep the previous window's events while a new window loads.
-		placeholderData: (previous) => previous,
 	});
 
 	let status: FeedStatus;

@@ -9,18 +9,19 @@ import {
 	Quaternion,
 	Vector3,
 } from "three";
-import type { GlobeEvent } from "@/api/schema";
+import type { GlobePoint } from "@/api/schema";
 import { NEW_EVENT_AGE_S } from "@/config";
 import { type Category, categoryOf } from "@/data/categories";
 import { eventKey } from "@/data/events";
 import { Tooltip } from "@/hud/Tooltip";
+import { useCoarsePointer } from "@/lib/hooks";
 import { useGlobeStore } from "@/state/store";
 import type { GlobeStyle } from "@/theme/globe-style";
 import { toneColor } from "@/theme/tones";
 import { ALTITUDE, footprintLoop, lonLatToVector3 } from "../geo";
 
 interface PointsLayerProps {
-	events: readonly GlobeEvent[];
+	events: readonly GlobePoint[];
 	style: GlobeStyle;
 	reducedMotion: boolean;
 }
@@ -31,6 +32,7 @@ export function PointsLayer({
 	style,
 	reducedMotion,
 }: PointsLayerProps) {
+	const touch = useCoarsePointer();
 	return (
 		<group>
 			{events.map((event) => {
@@ -43,6 +45,7 @@ export function PointsLayer({
 						category={categoryOf(event.event_type)}
 						style={style}
 						reducedMotion={reducedMotion}
+						touch={touch}
 					/>
 				);
 			})}
@@ -55,10 +58,12 @@ const scratch = new Vector3();
 
 interface EventMarkerProps {
 	id: string;
-	event: GlobeEvent;
+	event: GlobePoint;
 	category: Category;
 	style: GlobeStyle;
 	reducedMotion: boolean;
+	/** Finger input: a bigger hit area, and the tooltip follows the selection. */
+	touch: boolean;
 }
 
 function EventMarker({
@@ -67,6 +72,7 @@ function EventMarker({
 	category,
 	style,
 	reducedMotion,
+	touch,
 }: EventMarkerProps) {
 	const { longitude, latitude, range } = event;
 	const m = style.marker;
@@ -134,6 +140,8 @@ function EventMarker({
 
 	const onOver = (e: ThreeEvent<PointerEvent>) => {
 		e.stopPropagation();
+		// A finger dragging the globe across a marker is not a hover.
+		if (e.pointerType === "touch") return;
 		hover(id);
 		document.body.style.cursor = "pointer";
 	};
@@ -168,7 +176,7 @@ function EventMarker({
 						onPointerMove={(e) => e.stopPropagation()}
 						onClick={onClick}
 					>
-						<circleGeometry args={[m.hitArea, 16]} />
+						<circleGeometry args={[touch ? m.touchHitArea : m.hitArea, 16]} />
 						<meshBasicMaterial visible={false} />
 					</mesh>
 					<mesh renderOrder={2}>
@@ -213,7 +221,7 @@ function EventMarker({
 						/>
 					</mesh>
 				</group>
-				{hovered && (
+				{(hovered || (touch && selected)) && (
 					<Html zIndexRange={[30, 20]} style={{ pointerEvents: "none" }}>
 						<Tooltip event={event} category={category} />
 					</Html>

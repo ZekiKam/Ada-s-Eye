@@ -1,5 +1,5 @@
 import { Eye, EyeOff } from "lucide-react";
-import type { GlobeEvent } from "@/api/schema";
+import type { GlobePoint } from "@/api/schema";
 import { CATEGORIES, type Category, categoryOf } from "@/data/categories";
 import { cn } from "@/lib/utils";
 import { useGlobeStore } from "@/state/store";
@@ -10,7 +10,7 @@ import { Panel } from "./Panel";
  * One toggle per category: swatch, label and count. Lists the known
  * categories first, then any unknown `event_type` the data contains.
  */
-export function Legend({ events }: { events: readonly GlobeEvent[] }) {
+export function Legend({ events }: { events: readonly GlobePoint[] }) {
 	const hidden = useGlobeStore((s) => s.hidden);
 	const toggle = useGlobeStore((s) => s.toggleCategory);
 

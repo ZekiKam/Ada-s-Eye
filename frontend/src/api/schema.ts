@@ -10,26 +10,26 @@
 
 /** Request query. Both bounds are optional UNIX timestamps in seconds. */
 export interface Query {
-	time_range_start?: number;
-	time_range_end?: number;
+  time_range_start?: number;
+  time_range_end?: number;
 }
 
 /**
  * One item drawn on the globe. Field names follow the example event schema
  * in docs/PRD.md section 4 ("How the example schemas map").
  */
-export interface GlobeEvent {
-	/** WGS84 degrees, -180 to 180. */
-	longitude: number;
-	/** WGS84 degrees, -90 to 90. */
-	latitude: number;
-	/** Footprint radius in metres, at least 1. Drawn at true scale. */
-	range: number;
-	/** Category key. `data/categories.ts` maps known keys to a label and tone. */
-	event_type: string;
-	/** UNIX timestamp in seconds, UTC. */
-	event_time: number;
+export interface GlobePoint {
+  /** WGS84 degrees, -180 to 180. */
+  longitude: number;
+  /** WGS84 degrees, -90 to 90. */
+  latitude: number;
+  /** Footprint radius in metres, at least 1. Drawn at true scale. */
+  range: number;
+  /** Category key. `data/categories.ts` maps known keys to a label and tone. */
+  event_type: string;
+  /** UNIX timestamp in seconds, UTC. */
+  event_time: number;
 }
 
-/** A backend response: the events inside the requested time range. */
-export type EventsResponse = GlobeEvent[];
+/** A backend response: the points inside the requested time range. */
+export type PointsResponse = GlobePoint[];

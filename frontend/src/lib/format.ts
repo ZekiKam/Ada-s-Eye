@@ -5,11 +5,19 @@ export function formatDistance(metres: number): string {
 	return `${Math.round(metres)} m`;
 }
 
-/** "just now", "4 min ago", "3 h ago", "2 d ago". */
+const DATE = new Intl.DateTimeFormat("en-GB", {
+	day: "numeric",
+	month: "short",
+	year: "numeric",
+	timeZone: "UTC",
+});
+
+/** "just now", "4 min ago", "3 h ago", "2 d ago", then "11 Mar 2011". */
 export function formatAge(unixSeconds: number, nowMs: number): string {
 	const s = Math.max(0, Math.round(nowMs / 1000 - unixSeconds));
 	if (s < 60) return "just now";
 	if (s < 3600) return `${Math.floor(s / 60)} min ago`;
 	if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
-	return `${Math.floor(s / 86400)} d ago`;
+	if (s < 7 * 86400) return `${Math.floor(s / 86400)} d ago`;
+	return DATE.format(unixSeconds * 1000);
 }

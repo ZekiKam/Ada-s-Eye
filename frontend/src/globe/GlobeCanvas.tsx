@@ -1,10 +1,10 @@
 import { Canvas } from "@react-three/fiber";
 import { useEffect, useMemo, useState } from "react";
-import type { GlobeEvent } from "@/api/schema";
+import type { GlobePoint } from "@/api/schema";
 import { usePrefersReducedMotion } from "@/lib/hooks";
 import { useGlobeStore } from "@/state/store";
 import { globeStyle } from "@/theme/globe-style";
-import { CameraRig } from "./CameraRig";
+import { CameraRig, FOV } from "./CameraRig";
 import { GeoLines } from "./GeoLines";
 import { GlobeSurface } from "./GlobeSurface";
 import { type Atlas, loadAtlas, lonLatToVector3, paintCountries } from "./geo";
@@ -26,7 +26,7 @@ function hasWebGL(): boolean {
 
 interface GlobeCanvasProps {
 	/** Events to draw, already filtered to the visible categories. */
-	events: readonly GlobeEvent[];
+	events: readonly GlobePoint[];
 }
 
 export function GlobeCanvas({ events }: GlobeCanvasProps) {
@@ -65,12 +65,14 @@ export function GlobeCanvas({ events }: GlobeCanvasProps) {
 
 	return (
 		<Canvas
-			// Fades in over the page; land and lines then fade in once the atlas loads.
-			className="absolute! inset-0 animate-in fade-in duration-1000"
+			// The page fades the globe in; land and lines then fade in once the atlas loads.
+			className="absolute! inset-0"
 			flat
 			dpr={[1, 2]}
 			gl={{ antialias: true, alpha: true }}
-			camera={{ fov: 38, near: 0.01, far: 50, position: INITIAL_CAMERA }}
+			camera={{ fov: FOV, near: 0.01, far: 50, position: INITIAL_CAMERA }}
+			// A tap on space clears the selection, as a tap on the globe does.
+			onPointerMissed={() => select(null)}
 		>
 			<CameraRig reducedMotion={reducedMotion} />
 			<Stars style={style.stars} reducedMotion={reducedMotion} />

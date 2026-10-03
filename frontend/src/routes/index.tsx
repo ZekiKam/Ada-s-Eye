@@ -1,63 +1,127 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo } from "react";
-import { DEFAULT_WINDOW_S, WINDOW_OPTIONS, type WindowSeconds } from "@/config";
+import { useEffect, useMemo, useState } from "react";
+import { FIRST_YEAR, LAST_YEAR } from "@/config";
 import { useEvents } from "@/data/useEvents";
 import { GlobeCanvas } from "@/globe/GlobeCanvas";
-import { Legend } from "@/hud/Legend";
+import { Timeline } from "@/hud/Timeline";
 import { Wordmark } from "@/hud/Wordmark";
+import { usePrefersReducedMotion } from "@/lib/hooks";
+import { cn } from "@/lib/utils";
 import { useGlobeStore } from "@/state/store";
 
+/**
+ * How long the wordmark holds centre stage: it fades in and the eye opens
+ * (`--animate-eye-open` in index.css). Then it moves to the corner and the
+ * globe fades in.
+ */
+const INTRO_MS = 1100;
+
+/** Intro offset from the wordmark's corner position (`--hud-*` in index.css) to the viewport centre. */
+const INTRO_TRANSFORM = {
+  translate:
+    "calc(50vw - 50% - var(--hud-left)) calc(50dvh - 50% - var(--hud-top))",
+  scale: "2",
+};
+const SETTLED_TRANSFORM = { translate: "0 0", scale: "1" };
+
 interface IndexSearch {
-	window?: WindowSeconds;
+  year?: number;
 }
 
-function parseWindow(value: unknown): WindowSeconds | undefined {
-	return WINDOW_OPTIONS.find((o) => o.seconds === Number(value))?.seconds;
+function parseYear(value: unknown): number | undefined {
+  const year = Number(value);
+  return Number.isInteger(year) && year >= FIRST_YEAR && year <= LAST_YEAR
+    ? year
+    : undefined;
 }
 
 export const Route = createFileRoute("/")({
-	// Optional and falls back to the default, so a bare "/" works and a
-	// refresh or a shared link keeps the window.
-	validateSearch: (search: Record<string, unknown>): IndexSearch => ({
-		window: parseWindow(search.window),
-	}),
-	component: HomePage,
+  // Optional and falls back to the latest year, so a bare "/" works and a
+  // refresh or a shared link keeps the year.
+  validateSearch: (search: Record<string, unknown>): IndexSearch => ({
+    year: parseYear(search.year),
+  }),
+  component: HomePage,
 });
 
 function HomePage() {
-	const search = Route.useSearch();
-	const windowSeconds = search.window ?? DEFAULT_WINDOW_S;
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const year = search.year ?? LAST_YEAR;
 
-	const { events } = useEvents(windowSeconds);
-	const hidden = useGlobeStore((s) => s.hidden);
-	const visibleEvents = useMemo(
-		() => events.filter((e) => !hidden.includes(e.event_type)),
-		[events, hidden],
-	);
+  const { events, status } = useEvents(year);
+  const hidden = useGlobeStore((s) => s.hidden);
+  const visibleEvents = useMemo(
+    () => events.filter((e) => !hidden.includes(e.event_type)),
+    [events, hidden],
+  );
 
-	const select = useGlobeStore((s) => s.select);
+  const select = useGlobeStore((s) => s.select);
 
-	useEffect(() => {
-		const onKey = (e: KeyboardEvent) => {
-			if (e.key === "Escape") select(null);
-		};
-		window.addEventListener("keydown", onKey);
-		return () => window.removeEventListener("keydown", onKey);
-	}, [select]);
+  // Replace, not push: scrubbing would otherwise fill the back button.
+  const changeYear = (next: number) => {
+    select(null);
+    navigate({ search: { year: next }, replace: true });
+  };
 
-	return (
-		<main className="relative h-dvh w-full overflow-hidden">
-			<GlobeCanvas events={visibleEvents} />
+  const reducedMotion = usePrefersReducedMotion();
+  const [introDone, setIntroDone] = useState(false);
+  const settled = introDone || reducedMotion;
 
-			<div className="pointer-events-none absolute inset-0 p-4">
-				{/* Staggered after the globe starts fading in. */}
-				<div className="absolute top-4 left-4 animate-in fade-in fill-mode-both delay-300 duration-700">
-					<Wordmark />
-				</div>
-				<div className="absolute bottom-4 left-4 flex w-64 flex-col gap-2 animate-in fade-in fill-mode-both delay-500 duration-700">
-					<Legend events={events} />
-				</div>
-			</div>
-		</main>
-	);
+  useEffect(() => {
+    const id = window.setTimeout(() => setIntroDone(true), INTRO_MS);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") select(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [select]);
+
+  return (
+    <main className="relative h-dvh w-full overflow-hidden">
+      {/*
+       * Mounted from the start but hidden, so WebGL is already drawing by the
+       * time the globe and stars fade in as the wordmark moves aside.
+       */}
+      <div
+        className={cn(
+          "absolute inset-0 transition-opacity duration-700",
+          !settled && "pointer-events-none opacity-0",
+        )}
+      >
+        <GlobeCanvas events={visibleEvents} />
+      </div>
+
+      <div className="pointer-events-none absolute inset-0">
+        {/* Translate and scale only, so the move stays smooth while WebGL starts up. */}
+        <div
+          className="absolute top-(--hud-top) left-(--hud-left) transition-[translate,scale] duration-700 ease-in-out"
+          style={settled ? SETTLED_TRANSFORM : INTRO_TRANSFORM}
+        >
+          <div className="animate-in fade-in fill-mode-both duration-500">
+            <Wordmark />
+          </div>
+        </div>
+
+        {/* Arrives with the globe. */}
+        <div
+          className={cn(
+            "absolute right-(--hud-right) bottom-(--hud-bottom) left-(--hud-left) mx-auto max-w-5xl transition-opacity duration-700",
+            !settled && "invisible opacity-0",
+          )}
+        >
+          <Timeline
+            year={year}
+            onChange={changeYear}
+            count={visibleEvents.length}
+            status={status}
+          />
+        </div>
+      </div>
+    </main>
+  );
 }
