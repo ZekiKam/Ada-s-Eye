@@ -38,5 +38,7 @@ Settings come from environment variables or `.env`. They are `DATA_DIR`, `WILDFI
 ```sh
 uv sync
 cd src
-uv run fastapi dev main.py
+uv run fastapi dev main.py --port 8001
 ```
+
+Port 8001 matches `BACKEND_URL` in the frontend's `.dev.vars`.

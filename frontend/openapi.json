@@ -27,9 +27,32 @@
         }
       }
     },
+    "/api/get_anomalies": {
+      "get": {
+        "summary": "Get Anomalies",
+        "operationId": "getAnomalies",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DetectedAnomaly"
+                  },
+                  "type": "array",
+                  "title": "Response Getanomalies"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/request_anomaly": {
       "get": {
         "summary": "Request Anomaly",
+        "description": "The most confident anomaly near this spot in this year, or confidence 0\nover the whole search radius if there is none.",
         "operationId": "requestAnomaly",
         "parameters": [
           {
@@ -114,6 +137,45 @@
           "radius"
         ],
         "title": "Anomaly"
+      },
+      "DetectedAnomaly": {
+        "properties": {
+          "longitude": {
+            "type": "number",
+            "title": "Longitude"
+          },
+          "latitude": {
+            "type": "number",
+            "title": "Latitude"
+          },
+          "event_time": {
+            "type": "string",
+            "title": "Event Time"
+          },
+          "brightness": {
+            "type": "number",
+            "title": "Brightness"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "radius": {
+            "type": "number",
+            "title": "Radius"
+          }
+        },
+        "type": "object",
+        "required": [
+          "longitude",
+          "latitude",
+          "event_time",
+          "brightness",
+          "confidence",
+          "radius"
+        ],
+        "title": "DetectedAnomaly",
+        "description": "A hot satellite detection with no recorded wildfire nearby at that time."
       },
       "GlobePoint": {
         "properties": {

@@ -6,6 +6,7 @@
  */
 
 export * from './anomaly';
+export * from './detectedAnomaly';
 export * from './globePoint';
 export * from './hTTPValidationError';
 export * from './requestAnomalyParams';

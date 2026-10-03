@@ -21,6 +21,7 @@ import type {
 
 import type {
   Anomaly,
+  DetectedAnomaly,
   GlobePoint,
   HTTPValidationError,
   RequestAnomalyParams
@@ -149,6 +150,107 @@ export function useGetAllPoints<TData = Awaited<ReturnType<typeof getAllPoints>>
 
 
 
+export const getGetAnomaliesUrl = () => {
+
+
+
+
+  return `/api/get_anomalies`
+}
+
+/**
+ * @summary Get Anomalies
+ */
+export const getAnomalies = async ( options?: Parameters<typeof customFetch>[1]): Promise<DetectedAnomaly[]> => {
+
+  return customFetch<DetectedAnomaly[]>(getGetAnomaliesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAnomaliesQueryKey = () => {
+    return [
+    `/api/get_anomalies`
+    ] as const;
+    }
+
+
+export const getGetAnomaliesQueryOptions = <TData = Awaited<ReturnType<typeof getAnomalies>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAnomalies>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAnomaliesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAnomalies>>> = ({ signal }) => getAnomalies({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAnomalies>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAnomaliesQueryResult = NonNullable<Awaited<ReturnType<typeof getAnomalies>>>
+export type GetAnomaliesQueryError = unknown
+
+
+export function useGetAnomalies<TData = Awaited<ReturnType<typeof getAnomalies>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAnomalies>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAnomalies>>,
+          TError,
+          Awaited<ReturnType<typeof getAnomalies>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAnomalies<TData = Awaited<ReturnType<typeof getAnomalies>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAnomalies>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAnomalies>>,
+          TError,
+          Awaited<ReturnType<typeof getAnomalies>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAnomalies<TData = Awaited<ReturnType<typeof getAnomalies>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAnomalies>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get Anomalies
+ */
+
+export function useGetAnomalies<TData = Awaited<ReturnType<typeof getAnomalies>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAnomalies>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAnomaliesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getRequestAnomalyUrl = (params: RequestAnomalyParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -165,6 +267,8 @@ export const getRequestAnomalyUrl = (params: RequestAnomalyParams,) => {
 }
 
 /**
+ * The most confident anomaly near this spot in this year, or confidence 0
+ * over the whole search radius if there is none.
  * @summary Request Anomaly
  */
 export const requestAnomaly = async (params: RequestAnomalyParams, options?: Parameters<typeof customFetch>[1]): Promise<Anomaly> => {
