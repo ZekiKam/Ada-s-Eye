@@ -50,15 +50,15 @@ def find_anomaly(
     dryness: Dryness,
     found: list[FoundAnomaly],
 ) -> FoundAnomaly | None:
-    """The anomaly within search_km of the point in that year, or None.
-    Skips any already in `found`, so each anomaly is found only once."""
+    """The anomaly within search_km of the point in that year closest to it,
+    or None. Skips any already in `found`, so each anomaly is found only once,
+    and any detection near a recorded fire, which that fire explains."""
     print(
         f"[anomaly] query lon={longitude} lat={latitude} year={year} search_km={search_km}"
     )
-    for fire in fires:
-        if fire.day.year != year:
-            continue
+    fires_this_year = [f for f in fires if f.day.year == year]
 
+    for fire in fires_this_year:
         dist = haversine_km(longitude, latitude, fire.longitude, fire.latitude)
 
         # skip if too close to an existing fire
@@ -68,15 +68,17 @@ def find_anomaly(
 
     found_this_year = [a for a in found if a.start.year == year]
 
-    largestAnomaly = None
+    closestAnomaly = None
+    closest_km = math.inf
     rejected = {
         "year": 0,
         "distance": 0,
         "brightness": 0,
         "confidence": 0,
         "frp": 0,
+        "near known fire": 0,
         "already found": 0,
-        "smaller": 0,
+        "farther": 0,
     }
 
     for detection in detections:
@@ -106,6 +108,16 @@ def find_anomaly(
 
         if any(
             haversine_km(
+                detection.longitude, detection.latitude, f.longitude, f.latitude
+            )
+            < DISTANCE_TO_FIRE
+            for f in fires_this_year
+        ):
+            rejected["near known fire"] += 1
+            continue
+
+        if any(
+            haversine_km(
                 detection.longitude, detection.latitude, a.longitude, a.latitude
             )
             < SAME_ANOMALY_KM
@@ -114,11 +126,12 @@ def find_anomaly(
             rejected["already found"] += 1
             continue
 
-        if largestAnomaly and detection.radius_m / 1000 < largestAnomaly.radius_km:
-            rejected["smaller"] += 1
+        if dist >= closest_km:
+            rejected["farther"] += 1
             continue
 
-        largestAnomaly = FoundAnomaly(
+        closest_km = dist
+        closestAnomaly = FoundAnomaly(
             longitude=detection.longitude,
             latitude=detection.latitude,
             radius_km=detection.radius_m / 1000,
@@ -128,5 +141,5 @@ def find_anomaly(
         )
 
     print(f"[anomaly] {len(detections)} detections, rejected {rejected}")
-    print(f"[anomaly] result: {largestAnomaly}")
-    return largestAnomaly
+    print(f"[anomaly] result: {closestAnomaly}")
+    return closestAnomaly
