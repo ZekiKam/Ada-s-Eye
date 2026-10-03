@@ -18,6 +18,7 @@ class FoundAnomaly:
     intensity: float
 
 
+# CONSTANTS
 EARTH_RADIUS_KM = 6371.0
 DISTANCE_TO_FIRE = 50
 BRIGHT_AVERAGE_THRESHOLD = 306
@@ -70,6 +71,7 @@ def find_anomaly(
 
     closestAnomaly = None
     closest_km = math.inf
+    # log information
     rejected = {
         "year": 0,
         "distance": 0,
@@ -86,10 +88,13 @@ def find_anomaly(
             rejected["year"] += 1
             continue
 
+        # get the distance between the detection and the actual point
         dist = haversine_km(
             longitude, latitude, detection.longitude, detection.latitude
         )
 
+
+        # criteria for anomaly
         if dist > search_km:
             rejected["distance"] += 1
             continue
@@ -116,6 +121,7 @@ def find_anomaly(
             rejected["near known fire"] += 1
             continue
 
+        # no duplicate entries for the game
         if any(
             haversine_km(
                 detection.longitude, detection.latitude, a.longitude, a.latitude
@@ -130,6 +136,7 @@ def find_anomaly(
             rejected["farther"] += 1
             continue
 
+        # congrats you found an anomaly close enough
         closest_km = dist
         closestAnomaly = FoundAnomaly(
             longitude=detection.longitude,
@@ -140,6 +147,7 @@ def find_anomaly(
             intensity=detection.brightness,
         )
 
+    # debug
     print(f"[anomaly] {len(detections)} detections, rejected {rejected}")
     print(f"[anomaly] result: {closestAnomaly}")
     return closestAnomaly
