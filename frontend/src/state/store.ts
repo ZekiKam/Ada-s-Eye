@@ -16,8 +16,8 @@ interface GlobeState {
 	hoveredKey: string | null;
 	flight: Flight | null;
 	/**
-	 * Tokens for leaderboard entries this visitor found, by entry id. Only the
-	 * finder gets one, and it is needed to name the entry. Lost on reload.
+	 * Tokens for anomalies this visitor found, by entry id. Only the finder
+	 * gets one, and it is needed to name the find. Lost on reload.
 	 */
 	claims: Record<string, string>;
 	/** Selecting also flies the camera there. */

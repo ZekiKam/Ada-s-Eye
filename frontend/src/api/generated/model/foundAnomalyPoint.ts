@@ -9,6 +9,9 @@
  * An anomaly someone has found.
  */
 export interface FoundAnomalyPoint {
+  id: string;
+  rank: number | null;
+  name: string | null;
   longitude: number;
   latitude: number;
   event_time: string;

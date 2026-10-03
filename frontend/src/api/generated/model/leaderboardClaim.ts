@@ -6,11 +6,11 @@
  */
 
 /**
- * The anomaly a query found made the leaderboard. Only the finder gets
- * the token, which names the entry.
+ * A query found an anomaly. Only the finder gets the token, which names
+ * it.
  */
 export interface LeaderboardClaim {
   id: string;
-  rank: number;
+  rank: number | null;
   token: string;
 }

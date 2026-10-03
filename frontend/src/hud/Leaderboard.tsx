@@ -2,12 +2,17 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronDown, Trophy } from "lucide-react";
 import { type FormEvent, type ReactNode, useState } from "react";
 import {
+	getGetFoundAnomaliesQueryKey,
 	getGetLeaderboardQueryKey,
 	useGetLeaderboard,
 	useNameLeaderboardEntry,
 } from "@/api/generated";
-import type { LeaderboardEntry } from "@/api/generated/model";
+import type {
+	FoundAnomalyPoint,
+	LeaderboardEntry,
+} from "@/api/generated/model";
 import { ANOMALY } from "@/data/events";
+import { useAllFoundAnomalies } from "@/data/useFoundAnomalies";
 import { formatDate, formatDistance, formatLonLat } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useGlobeStore } from "@/state/store";
@@ -168,39 +173,41 @@ function EntryRow({
 }
 
 /**
- * Lets the finder of a leaderboard entry name it, once. Shows nothing for an
- * entry this visitor did not find; says so once it is named or has been
- * pushed off the board.
+ * Lets the finder of an anomaly name it, once, whether or not it is on the
+ * board; the name shows on the globe too. Shows nothing for a find this
+ * visitor did not make; says so once it is named.
  */
 export function ClaimName({ entryId }: { entryId: string }) {
 	const token = useGlobeStore((s) => s.claims[entryId]);
-	const board = useLeaderboard();
+	const finds = useAllFoundAnomalies();
 	const queryClient = useQueryClient();
 	const [name, setName] = useState("");
 	const mutation = useNameLeaderboardEntry<Error>({
 		mutation: {
 			onSuccess: (named) => {
+				queryClient.setQueryData<FoundAnomalyPoint[]>(
+					getGetFoundAnomaliesQueryKey(),
+					(all) => all?.map((a) => (a.id === named.id ? named : a)),
+				);
 				queryClient.setQueryData<LeaderboardEntry[]>(
 					getGetLeaderboardQueryKey(),
-					(entries) => entries?.map((e) => (e.id === named.id ? named : e)),
+					(entries) =>
+						entries?.map((e) =>
+							e.id === named.id ? { ...e, name: named.name } : e,
+						),
 				);
 			},
 		},
 	});
 
-	const entry = board.data?.find((e) => e.id === entryId);
+	const entry = finds.data?.find((a) => a.id === entryId);
 	if (!token) return null;
-	if (board.data && !entry)
-		return (
-			<p className="label-caps text-muted-foreground">
-				Pushed off the leaderboard
-			</p>
-		);
+	// Only after a backend restart, which forgets every find.
+	if (finds.data && !entry)
+		return <p className="label-caps text-muted-foreground">No longer listed</p>;
 	if (entry?.name)
 		return (
-			<p className="label-caps text-muted-foreground">
-				On the board as {entry.name}
-			</p>
+			<p className="label-caps text-muted-foreground">Named {entry.name}</p>
 		);
 
 	const trimmed = name.trim();
@@ -217,7 +224,7 @@ export function ClaimName({ entryId }: { entryId: string }) {
 					onChange={(e) => setName(e.target.value)}
 					maxLength={MAX_NAME_LENGTH}
 					placeholder="Add your name"
-					aria-label="Your name for the leaderboard"
+					aria-label="Your name for this find"
 					className="min-w-0 flex-1 bg-transparent px-2 py-1 font-mono text-xs outline-none placeholder:text-muted-foreground"
 				/>
 				<button

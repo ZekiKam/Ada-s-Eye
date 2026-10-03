@@ -21,7 +21,7 @@ import type {
 import { EARTH_RADIUS_M, NEW_EVENT_AGE_S } from "@/config";
 import { ANOMALY, eventKey, eventSeconds, WILDFIRE } from "@/data/events";
 import { AnomalyQuery } from "@/hud/AnomalyQuery";
-import { Tooltip } from "@/hud/Tooltip";
+import { AnomalyTooltip, Tooltip } from "@/hud/Tooltip";
 import { type Selection, useGlobeStore } from "@/state/store";
 import type { GlobeStyle } from "@/theme/globe-style";
 import { toneColor } from "@/theme/tones";
@@ -64,21 +64,7 @@ export function PointsLayer({
 				);
 			})}
 			{anomalies.map((anomaly) => (
-				<group key={eventKey(anomaly)}>
-					<SizeRing
-						longitude={anomaly.longitude}
-						latitude={anomaly.latitude}
-						radius={anomaly.radius}
-						color={toneColor(ANOMALY.tone)}
-						style={style}
-					/>
-					<FireDot
-						longitude={anomaly.longitude}
-						latitude={anomaly.latitude}
-						color={toneColor(ANOMALY.tone)}
-						style={style}
-					/>
-				</group>
+				<FoundAnomalyMarker key={anomaly.id} anomaly={anomaly} style={style} />
 			))}
 		</group>
 	);
@@ -429,6 +415,91 @@ function FireDot({
 					<circleGeometry args={[1, 32]} />
 					<meshBasicMaterial color={color} transparent depthWrite={false} />
 				</mesh>
+			</group>
+		</group>
+	);
+}
+
+/** Hover keys share the store with wildfires, so these get a prefix. */
+const anomalyKey = (id: string) => `anomaly|${id}`;
+
+/**
+ * An anomaly someone has found: a dot in a ring showing its radius, and on
+ * hover who found it and its stats. Clicks pass through to the globe.
+ */
+function FoundAnomalyMarker({
+	anomaly,
+	style,
+}: {
+	anomaly: FoundAnomalyPoint;
+	style: GlobeStyle;
+}) {
+	const { longitude, latitude } = anomaly;
+	const m = style.marker;
+	const color = toneColor(ANOMALY.tone);
+	const key = anomalyKey(anomaly.id);
+	const hovered = useGlobeStore((s) => s.hoveredKey === key);
+	const hover = useGlobeStore((s) => s.hover);
+	const { position, quaternion } = useAnchor(longitude, latitude);
+	const scaled = useRef<Group>(null);
+
+	useFrame(({ camera, size }) => {
+		const group = scaled.current;
+		if (!group) return;
+		group.scale.setScalar(
+			m.sizePx *
+				worldPerPixel(camera, size.height, group) *
+				(hovered ? m.emphasis : 1),
+		);
+	});
+
+	const onOver = (e: ThreeEvent<PointerEvent>) => {
+		e.stopPropagation();
+		// A finger dragging the globe across a marker is not a hover.
+		if (e.pointerType === "touch") return;
+		hover(key);
+	};
+	const onOut = () => {
+		if (useGlobeStore.getState().hoveredKey === key) hover(null);
+	};
+
+	return (
+		<group>
+			<SizeRing
+				longitude={longitude}
+				latitude={latitude}
+				radius={anomaly.radius}
+				color={color}
+				style={style}
+			/>
+			<group position={position} quaternion={quaternion}>
+				<group ref={scaled} scale={0}>
+					<mesh
+						onPointerOver={onOver}
+						onPointerOut={onOut}
+						onPointerMove={(e) => e.stopPropagation()}
+					>
+						<circleGeometry args={[m.hitArea, 16]} />
+						<meshBasicMaterial visible={false} />
+					</mesh>
+					<mesh renderOrder={2}>
+						<circleGeometry args={[m.outline, 32]} />
+						<meshBasicMaterial
+							color={style.ink}
+							transparent
+							depthWrite={false}
+						/>
+					</mesh>
+					<mesh renderOrder={3}>
+						<circleGeometry args={[1, 32]} />
+						<meshBasicMaterial color={color} transparent depthWrite={false} />
+					</mesh>
+				</group>
+				{hovered && (
+					<Html zIndexRange={[30, 20]} style={{ pointerEvents: "none" }}>
+						<AnomalyTooltip anomaly={anomaly} />
+					</Html>
+				)}
 			</group>
 		</group>
 	);

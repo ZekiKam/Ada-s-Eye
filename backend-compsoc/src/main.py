@@ -4,7 +4,7 @@ from datetime import datetime, time, timezone
 from pathlib import Path
 from typing import Annotated
 
-from anomalies import FoundAnomaly, find_anomaly
+from anomalies import find_anomaly
 from datasets import (
     Detection,
     Wildfire,
@@ -43,9 +43,8 @@ settings = Settings()
 wildfires: list[Wildfire] = []
 detections: list[Detection] = []
 dryness = Dryness({})
+# Every anomaly found so far (leaderboard.found), and the largest of them.
 leaderboard = Leaderboard()
-# Every anomaly found so far, oldest find first. In memory only.
-found_anomalies: list[FoundAnomaly] = []
 
 
 @asynccontextmanager
@@ -95,10 +94,10 @@ async def get_all_points():
 async def request_anomaly(request: Annotated[RequestAnomaly, Query()]):
     """The anomaly within the search radius of the queried spot in that year,
     found on the fly: its middle, radius, intensity and distance. With none,
-    the queried spot and the search radius at confidence 0. An anomaly found
-    for the first time that is among the largest goes on the leaderboard, and
-    `claim` holds the token to name it. Each anomaly can be found only once:
-    after that, queries skip it."""
+    the queried spot and the search radius at confidence 0. Each anomaly can be
+    found only once: after that, queries skip it. A find is shown to everyone,
+    goes on the leaderboard if among the largest, and `claim` holds the token
+    to name it."""
     found = find_anomaly(
         request.longitude,
         request.latitude,
@@ -107,7 +106,7 @@ async def request_anomaly(request: Annotated[RequestAnomaly, Query()]):
         fires=wildfires,
         detections=detections,
         dryness=dryness,
-        found=found_anomalies,
+        found=[e.anomaly for e in leaderboard.found],
     )
     if found is None:
         return Anomaly(
@@ -118,7 +117,6 @@ async def request_anomaly(request: Annotated[RequestAnomaly, Query()]):
             radius=settings.query_radius_km * 1000,
             distance=0.0,
         )
-    found_anomalies.append(found)
     claim = None
     if entry := leaderboard.submit(found):
         claim = LeaderboardClaim(
@@ -144,19 +142,24 @@ async def request_anomaly(request: Annotated[RequestAnomaly, Query()]):
     response_model=list[FoundAnomalyPoint],
 )
 async def get_found_anomalies():
-    """Every anomaly anyone has found, oldest find first. Kept in memory, so
-    it empties when the server restarts."""
-    return [
-        FoundAnomalyPoint(
-            longitude=a.longitude,
-            latitude=a.latitude,
-            event_time=_iso(a.start),
-            radius=a.radius_km * 1000,
-            intensity=a.intensity,
-            confidence=a.confidence,
-        )
-        for a in found_anomalies
-    ]
+    """Every anomaly anyone has found, oldest find first, with its finder's
+    name. Kept in memory, so it empties when the server restarts."""
+    return [_found_point(e) for e in leaderboard.found]
+
+
+def _found_point(entry: Entry) -> FoundAnomalyPoint:
+    a = entry.anomaly
+    return FoundAnomalyPoint(
+        id=entry.id,
+        rank=leaderboard.rank(entry),
+        name=entry.name,
+        longitude=a.longitude,
+        latitude=a.latitude,
+        event_time=_iso(a.start),
+        radius=a.radius_km * 1000,
+        intensity=a.intensity,
+        confidence=a.confidence,
+    )
 
 
 def _leaderboard_entry(entry: Entry) -> LeaderboardEntry:
@@ -188,16 +191,17 @@ async def get_leaderboard():
 @app.put(
     "/api/leaderboard/{entry_id}/name",
     operation_id="nameLeaderboardEntry",
-    response_model=LeaderboardEntry,
+    response_model=FoundAnomalyPoint,
 )
 async def name_leaderboard_entry(entry_id: str, body: NameEntry):
-    """Names an entry, once, with the token its finder was given."""
+    """Names a find, once, with the token its finder was given. Any find can
+    be named, on the leaderboard or not."""
     try:
         entry = leaderboard.set_name(entry_id, body.token, body.name)
     except NotFound:
-        raise HTTPException(404, "That anomaly is no longer on the leaderboard")
+        raise HTTPException(404, "No such anomaly")
     except Forbidden:
         raise HTTPException(403, "Only the finder can name this anomaly")
     except AlreadyNamed:
         raise HTTPException(409, "This anomaly already has a name")
-    return _leaderboard_entry(entry)
+    return _found_point(entry)

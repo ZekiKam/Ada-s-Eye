@@ -19,8 +19,8 @@ import { toneVar } from "@/theme/tones";
  * selected year, and shows the answer below the button. Nothing is sent
  * until the button is pressed; pressing again re-runs the query. Mount it
  * keyed by the selection so a new one starts fresh. `SpotMarker` draws the
- * same answer on the globe. An anomaly that makes the leaderboard can be
- * named here.
+ * same answer on the globe. The finder can name an anomaly here, which
+ * everyone then sees on the globe and, if it made it, the leaderboard.
  */
 export function AnomalyQuery({ selection }: { selection: Selection }) {
 	const [asked, setAsked] = useState(false);
@@ -39,23 +39,17 @@ export function AnomalyQuery({ selection }: { selection: Selection }) {
 	const claim = useGlobeStore((s) => s.claim);
 	const queryClient = useQueryClient();
 	const [placed, setPlaced] = useState<LeaderboardClaim | null>(null);
-	// A find is shown to everyone, so show it here now rather than at the next poll.
-	const anomaly = query.data;
-	useEffect(() => {
-		if (!anomaly || anomaly.confidence === 0) return;
-		void queryClient.invalidateQueries({
-			queryKey: getGetFoundAnomaliesQueryKey(),
-		});
-	}, [anomaly, queryClient]);
-
 	const found = query.data?.claim;
 	useEffect(() => {
 		if (!found) return;
 		setPlaced(found);
 		claim(found.id, found.token);
-		void queryClient.invalidateQueries({
-			queryKey: getGetLeaderboardQueryKey(),
-		});
+		// Shown to everyone, so show it here now rather than at the next poll.
+		for (const queryKey of [
+			getGetFoundAnomaliesQueryKey(),
+			getGetLeaderboardQueryKey(),
+		])
+			void queryClient.invalidateQueries({ queryKey });
 	}, [found, claim, queryClient]);
 
 	let result: ReactNode = null;
@@ -104,7 +98,7 @@ export function AnomalyQuery({ selection }: { selection: Selection }) {
 
 /**
  * The anomaly's radius as a large figure, and how far from the spot its
- * middle is. Below, the leaderboard place it took, if any.
+ * middle is. Below, the leaderboard place it took, if any, and naming it.
  */
 function AnomalyResult({
 	anomaly,
@@ -150,8 +144,14 @@ function AnomalyResult({
 						className="label-caps flex items-center gap-2"
 						style={{ color: tone }}
 					>
-						<Trophy aria-hidden className="size-3.5" />
-						New No. {placed.rank} on the leaderboard
+						{placed.rank !== null ? (
+							<>
+								<Trophy aria-hidden className="size-3.5" />
+								New No. {placed.rank} on the leaderboard
+							</>
+						) : (
+							"First to find it"
+						)}
 					</span>
 					<ClaimName entryId={placed.id} />
 				</div>

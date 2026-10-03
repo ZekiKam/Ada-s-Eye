@@ -9,14 +9,20 @@ const REFRESH_MS = 15_000;
 const NONE: FoundAnomalyPoint[] = [];
 
 /**
- * The anomalies anyone has found, detected inside one calendar year (UTC).
- * The backend holds them in memory and hands each out only once, so this is
- * how everyone else sees a find. Empty until the fetch succeeds.
+ * Every anomaly anyone has found, with who found it. The backend holds them
+ * in memory and hands each out only once, so this is how everyone else sees
+ * a find.
  */
-export function useFoundAnomalies(year: number): FoundAnomalyPoint[] {
-	const { data } = useGetFoundAnomalies<FoundAnomalyPoint[], Error>({
+export function useAllFoundAnomalies() {
+	// customFetch throws ApiError for HTTP errors; network failures are plain Errors.
+	return useGetFoundAnomalies<FoundAnomalyPoint[], Error>({
 		query: { refetchInterval: REFRESH_MS },
 	});
+}
+
+/** The finds detected inside one calendar year (UTC). Empty until fetched. */
+export function useFoundAnomalies(year: number): FoundAnomalyPoint[] {
+	const { data } = useAllFoundAnomalies();
 	return useMemo(() => {
 		if (!data) return NONE;
 		const start = Date.UTC(year, 0, 1) / 1000;

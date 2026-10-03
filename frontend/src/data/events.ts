@@ -10,7 +10,7 @@ export const WILDFIRE: { label: string; tone: Tone } = {
 /** A hot satellite detection with no recorded wildfire to explain it. */
 export const ANOMALY: { label: string; tone: Tone } = {
 	label: "Anomaly",
-	tone: "accent1",
+	tone: "positive",
 };
 
 /**

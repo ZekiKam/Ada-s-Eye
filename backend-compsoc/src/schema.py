@@ -17,11 +17,11 @@ class RequestAnomaly(BaseModel):
 
 
 class LeaderboardClaim(BaseModel):
-    """The anomaly a query found made the leaderboard. Only the finder gets
-    the token, which names the entry."""
+    """A query found an anomaly. Only the finder gets the token, which names
+    it."""
 
     id: str
-    rank: int  # 1 for the largest
+    rank: int | None  # 1 for the largest; None when not on the leaderboard
     token: str
 
 
@@ -41,6 +41,9 @@ class Anomaly(BaseModel):
 class FoundAnomalyPoint(BaseModel):
     """An anomaly someone has found."""
 
+    id: str
+    rank: int | None  # on the leaderboard, 1 for the largest; else None
+    name: str | None  # its finder's, once they name it
     longitude: float
     latitude: float
     event_time: str  # ISO 8601, UTC: its first detection

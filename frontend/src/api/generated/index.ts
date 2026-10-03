@@ -174,10 +174,10 @@ export const getRequestAnomalyUrl = (params: RequestAnomalyParams,) => {
 /**
  * The anomaly within the search radius of the queried spot in that year,
  * found on the fly: its middle, radius, intensity and distance. With none,
- * the queried spot and the search radius at confidence 0. An anomaly found
- * for the first time that is among the largest goes on the leaderboard, and
- * `claim` holds the token to name it. Each anomaly can be found only once:
- * after that, queries skip it.
+ * the queried spot and the search radius at confidence 0. Each anomaly can be
+ * found only once: after that, queries skip it. A find is shown to everyone,
+ * goes on the leaderboard if among the largest, and `claim` holds the token
+ * to name it.
  * @summary Request Anomaly
  */
 export const requestAnomaly = async (params: RequestAnomalyParams, options?: Parameters<typeof customFetch>[1]): Promise<Anomaly> => {
@@ -279,8 +279,8 @@ export const getGetFoundAnomaliesUrl = () => {
 }
 
 /**
- * Every anomaly anyone has found, oldest find first. Kept in memory, so
- * it empties when the server restarts.
+ * Every anomaly anyone has found, oldest find first, with its finder's
+ * name. Kept in memory, so it empties when the server restarts.
  * @summary Get Found Anomalies
  */
 export const getFoundAnomalies = async ( options?: Parameters<typeof customFetch>[1]): Promise<FoundAnomalyPoint[]> => {
@@ -485,11 +485,12 @@ export const getNameLeaderboardEntryUrl = (entryId: string,) => {
 }
 
 /**
- * Names an entry, once, with the token its finder was given.
+ * Names a find, once, with the token its finder was given. Any find can
+ * be named, on the leaderboard or not.
  * @summary Name Leaderboard Entry
  */
 export const nameLeaderboardEntry = async (entryId: string,
-    nameEntry: NameEntry, options?: Parameters<typeof customFetch>[1]): Promise<LeaderboardEntry> => {
+    nameEntry: NameEntry, options?: Parameters<typeof customFetch>[1]): Promise<FoundAnomalyPoint> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -505,7 +506,7 @@ export const nameLeaderboardEntry = async (entryId: string,
     }
     return headers;
   };
-return customFetch<LeaderboardEntry>(getNameLeaderboardEntryUrl(entryId),
+return customFetch<FoundAnomalyPoint>(getNameLeaderboardEntryUrl(entryId),
   {
     ...options,
     method: 'PUT',

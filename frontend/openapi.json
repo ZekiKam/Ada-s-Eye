@@ -30,7 +30,7 @@
     "/api/request_anomaly": {
       "get": {
         "summary": "Request Anomaly",
-        "description": "The anomaly within the search radius of the queried spot in that year,\nfound on the fly: its middle, radius, intensity and distance. With none,\nthe queried spot and the search radius at confidence 0. An anomaly found\nfor the first time that is among the largest goes on the leaderboard, and\n`claim` holds the token to name it. Each anomaly can be found only once:\nafter that, queries skip it.",
+        "description": "The anomaly within the search radius of the queried spot in that year,\nfound on the fly: its middle, radius, intensity and distance. With none,\nthe queried spot and the search radius at confidence 0. Each anomaly can be\nfound only once: after that, queries skip it. A find is shown to everyone,\ngoes on the leaderboard if among the largest, and `claim` holds the token\nto name it.",
         "operationId": "requestAnomaly",
         "parameters": [
           {
@@ -88,7 +88,7 @@
     "/api/found_anomalies": {
       "get": {
         "summary": "Get Found Anomalies",
-        "description": "Every anomaly anyone has found, oldest find first. Kept in memory, so\nit empties when the server restarts.",
+        "description": "Every anomaly anyone has found, oldest find first, with its finder's\nname. Kept in memory, so it empties when the server restarts.",
         "operationId": "getFoundAnomalies",
         "responses": {
           "200": {
@@ -134,7 +134,7 @@
     "/api/leaderboard/{entry_id}/name": {
       "put": {
         "summary": "Name Leaderboard Entry",
-        "description": "Names an entry, once, with the token its finder was given.",
+        "description": "Names a find, once, with the token its finder was given. Any find can\nbe named, on the leaderboard or not.",
         "operationId": "nameLeaderboardEntry",
         "parameters": [
           {
@@ -163,7 +163,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LeaderboardEntry"
+                  "$ref": "#/components/schemas/FoundAnomalyPoint"
                 }
               }
             }
@@ -235,6 +235,32 @@
       },
       "FoundAnomalyPoint": {
         "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
           "longitude": {
             "type": "number",
             "title": "Longitude"
@@ -262,6 +288,9 @@
         },
         "type": "object",
         "required": [
+          "id",
+          "rank",
+          "name",
           "longitude",
           "latitude",
           "event_time",
@@ -320,7 +349,14 @@
             "title": "Id"
           },
           "rank": {
-            "type": "integer",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Rank"
           },
           "token": {
@@ -335,7 +371,7 @@
           "token"
         ],
         "title": "LeaderboardClaim",
-        "description": "The anomaly a query found made the leaderboard. Only the finder gets\nthe token, which names the entry."
+        "description": "A query found an anomaly. Only the finder gets the token, which names\nit."
       },
       "LeaderboardEntry": {
         "properties": {
