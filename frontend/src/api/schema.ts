@@ -18,7 +18,7 @@ export interface Query {
  * One item drawn on the globe. Field names follow the example event schema
  * in docs/PRD.md section 4 ("How the example schemas map").
  */
-export interface GlobeEvent {
+export interface GlobePoint {
 	/** WGS84 degrees, -180 to 180. */
 	longitude: number;
 	/** WGS84 degrees, -90 to 90. */
@@ -31,5 +31,5 @@ export interface GlobeEvent {
 	event_time: number;
 }
 
-/** A backend response: the events inside the requested time range. */
-export type EventsResponse = GlobeEvent[];
+/** A backend response: the points inside the requested time range. */
+export type PointsResponse = GlobePoint[];

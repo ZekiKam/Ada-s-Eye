@@ -2,17 +2,9 @@
 export const POLL_INTERVAL_MS =
 	Number(import.meta.env.VITE_POLL_INTERVAL_MS) || 10_000;
 
-/** Time windows offered by the time-window control, in seconds. */
-export const WINDOW_OPTIONS = [
-	{ seconds: 3600, label: "1 h" },
-	{ seconds: 21600, label: "6 h" },
-	{ seconds: 86400, label: "24 h" },
-	{ seconds: 604800, label: "7 d" },
-] as const;
-
-export type WindowSeconds = (typeof WINDOW_OPTIONS)[number]["seconds"];
-
-export const DEFAULT_WINDOW_S: WindowSeconds = 86400;
+/** Years the timeline covers, inclusive. It opens on the last. */
+export const FIRST_YEAR = 2010;
+export const LAST_YEAR = 2026;
 
 /** Events younger than this pulse on the globe. */
 export const NEW_EVENT_AGE_S = 15 * 60;

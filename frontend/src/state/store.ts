@@ -8,29 +8,18 @@ interface Flight {
 }
 
 interface GlobeState {
-	/** Hidden event types. Remembered for the session. */
-	hidden: readonly string[];
 	selectedKey: string | null;
 	hoveredKey: string | null;
 	flight: Flight | null;
-	toggleCategory(key: string): void;
 	select(key: string | null): void;
 	hover(key: string | null): void;
 	flyTo(longitude: number, latitude: number): void;
 }
 
 export const useGlobeStore = create<GlobeState>()((set) => ({
-	hidden: [],
 	selectedKey: null,
 	hoveredKey: null,
 	flight: null,
-
-	toggleCategory: (key) =>
-		set((s) => ({
-			hidden: s.hidden.includes(key)
-				? s.hidden.filter((k) => k !== key)
-				: [...s.hidden, key],
-		})),
 
 	select: (selectedKey) => set({ selectedKey }),
 

@@ -1,13 +1,21 @@
 import { OrbitControls } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { type ComponentRef, useEffect, useRef } from "react";
-import { Quaternion, type Vector3 } from "three";
+import { type PerspectiveCamera, Quaternion, type Vector3 } from "three";
 import { IDLE_ROTATE_AFTER_MS } from "@/config";
+import { useCoarsePointer } from "@/lib/hooks";
 import { useGlobeStore } from "@/state/store";
 import { lonLatToVector3 } from "./geo";
 
+/**
+ * Field of view in degrees across the narrower side of the screen, so a
+ * portrait phone frames the globe the way a landscape screen does.
+ */
+export const FOV = 38;
 export const MIN_DISTANCE = 1.15;
 export const MAX_DISTANCE = 4;
+/** How far the globe sits above the screen centre, as a share of its height. */
+const LIFT = 0.05;
 /** Distance a flight zooms in to, if the camera is further out. */
 const FLIGHT_DISTANCE = 2.4;
 const MAX_FLIGHT_S = 1.2;
@@ -31,10 +39,29 @@ const easeInOutCubic = (t: number) =>
 export function CameraRig({ reducedMotion }: { reducedMotion: boolean }) {
 	const controls = useRef<ComponentRef<typeof OrbitControls>>(null);
 	const camera = useThree((s) => s.camera);
+	const size = useThree((s) => s.size);
+	const touch = useCoarsePointer();
 	const request = useGlobeStore((s) => s.flight);
 	const flight = useRef<Flight | null>(null);
 	const lastInteraction = useRef(performance.now());
 	const identity = useRef(new Quaternion());
+
+	// three.js fixes the vertical field of view. In portrait, widen it so the
+	// horizontal one is FOV instead. Runs after R3F updates the aspect.
+	// The view offset then shifts the frame down, lifting the globe clear of
+	// the timeline without moving the orbit pivot.
+	useEffect(() => {
+		const perspective = camera as PerspectiveCamera;
+		const { width, height } = size;
+		const aspect = width / height;
+		const halfFov = (FOV * Math.PI) / 360;
+		perspective.fov =
+			aspect >= 1
+				? FOV
+				: (360 / Math.PI) * Math.atan(Math.tan(halfFov) / aspect);
+		perspective.setViewOffset(width, height, 0, height * LIFT, width, height);
+		perspective.updateProjectionMatrix();
+	}, [camera, size]);
 
 	useEffect(() => {
 		if (!request) return;
@@ -78,9 +105,13 @@ export function CameraRig({ reducedMotion }: { reducedMotion: boolean }) {
 		}
 
 		// Slower rotation when zoomed in, so the surface tracks the pointer.
+		// OrbitControls scales drags by the screen height, but the globe is sized
+		// by the narrower side, so portrait screens need a boost to keep up.
 		const distance = camera.position.length();
 		c.rotateSpeed =
-			0.12 + (0.5 * (distance - MIN_DISTANCE)) / (MAX_DISTANCE - MIN_DISTANCE);
+			(0.12 +
+				(0.5 * (distance - MIN_DISTANCE)) / (MAX_DISTANCE - MIN_DISTANCE)) *
+			Math.max(1, size.height / size.width);
 
 		const idle = now - lastInteraction.current > IDLE_ROTATE_AFTER_MS;
 		const hasSelection = useGlobeStore.getState().selectedKey !== null;
@@ -104,7 +135,8 @@ export function CameraRig({ reducedMotion }: { reducedMotion: boolean }) {
 			dampingFactor={0.08}
 			minDistance={MIN_DISTANCE}
 			maxDistance={MAX_DISTANCE}
-			zoomSpeed={0.6}
+			// Gentle wheel steps; a pinch follows the fingers.
+			zoomSpeed={touch ? 1 : 0.6}
 			autoRotateSpeed={0.35}
 			onStart={onStart}
 			onEnd={onEnd}

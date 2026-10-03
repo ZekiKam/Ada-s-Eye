@@ -61,6 +61,17 @@
 	--radius-2xl: calc(var(--radius) * 1.8);
 	--radius-3xl: calc(var(--radius) * 2.2);
 	--radius-4xl: calc(var(--radius) * 2.6);
+
+	/* Intro: the lids open. The delay leaves time for the wordmark to fade in. */
+	--animate-eye-open: eye-open 0.6s cubic-bezier(0.3, 0, 0.2, 1) 0.3s both;
+	@keyframes eye-open {
+		from {
+			transform: scaleY(0.04);
+		}
+		to {
+			transform: scaleY(1);
+		}
+	}
 }
 
 /*
@@ -72,7 +83,7 @@
 	--page: #2236c8;
 	--bone: #efe7d2;
 	--ink: #0b1046;
-	--panel: #1c1b1b;
+	--panel: #1d234d;
 
 	--tone-neutral: #efe7d2;
 	--tone-info: #3fd6e8;
@@ -116,6 +127,12 @@
 	--sidebar-accent-foreground: var(--bone);
 	--sidebar-border: rgb(239 231 210 / 0.42);
 	--sidebar-ring: var(--bone);
+
+	/* HUD distance from each screen edge, clear of notches and the home indicator. */
+	--hud-top: max(1rem, env(safe-area-inset-top));
+	--hud-right: max(1rem, env(safe-area-inset-right));
+	--hud-bottom: max(1rem, env(safe-area-inset-bottom));
+	--hud-left: max(1rem, env(safe-area-inset-left));
 }
 
 /* Monospace capitals with wide tracking, for labels and tags. */
@@ -136,20 +153,30 @@
 	}
 }
 
-/* Category colour chip. */
-@utility swatch {
-	display: inline-block;
-	flex: none;
-	width: 10px;
-	height: 10px;
-	border-radius: 9999px;
-	box-shadow: 0 0 0 1.5px var(--ink);
-}
-
-@utility status-dot {
-	display: inline-block;
-	width: 6px;
-	height: 6px;
+/*
+ * The globe's engraved texture for a HUD surface: paper grain over ink
+ * halftone dots, as in globe/shaders/surface.ts. The dots sit on the shader's
+ * 4.5px grid turned 45°, drawn as two square lattices 4.5·√2 px apart, the
+ * second offset by half. Ink is at the ocean's dot strength. The grain is
+ * mid-grey noise overlaid, so it shifts brightness both ways like the shader's.
+ * Sits on top of the element's own background colour.
+ */
+@utility engraved {
+	--engraved-cell: 6.364px;
+	--engraved-dot: rgb(11 16 70 / 0.55);
+	background-image:
+		url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0.45 0 0 0 0.275 0.45 0 0 0 0.275 0.45 0 0 0 0.275 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E"),
+		radial-gradient(circle, var(--engraved-dot) 1px, transparent 1.6px),
+		radial-gradient(circle, var(--engraved-dot) 1px, transparent 1.6px);
+	background-size:
+		160px 160px,
+		var(--engraved-cell) var(--engraved-cell),
+		var(--engraved-cell) var(--engraved-cell);
+	background-position:
+		0 0,
+		0 0,
+		calc(var(--engraved-cell) / 2) calc(var(--engraved-cell) / 2);
+	background-blend-mode: overlay, normal, normal;
 }
 
 @layer base {
@@ -158,8 +185,15 @@
 	}
 	body {
 		@apply bg-background text-foreground antialiased;
+		-webkit-tap-highlight-color: transparent;
 	}
 	html {
 		@apply font-sans;
+		/*
+		 * The page never scrolls: no scrollbars, pull-to-refresh or rubber-banding
+		 * behind the full-screen globe. Set here, as the viewport takes it from html.
+		 */
+		overflow: hidden;
+		overscroll-behavior: none;
 	}
 }
