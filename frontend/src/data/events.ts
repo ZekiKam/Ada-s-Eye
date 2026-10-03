@@ -7,6 +7,12 @@ export const WILDFIRE: { label: string; tone: Tone } = {
 	tone: "danger",
 };
 
+/** A hot satellite detection with no recorded wildfire to explain it. */
+export const ANOMALY: { label: string; tone: Tone } = {
+	label: "Anomaly",
+	tone: "accent1",
+};
+
 /**
  * Stable identity for a point. The backend treats (longitude, latitude) as
  * the id; the time is added so a place that burned twice stays two points.

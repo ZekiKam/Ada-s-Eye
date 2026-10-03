@@ -90,6 +90,8 @@ export interface MarkerStyle {
 	appearMs: number;
 	/** Marker and ring for the selected spot. */
 	spotColor: string;
+	/** Dashes around the area searched when an anomaly query finds nothing. */
+	clearDashes: number;
 }
 
 export interface LabelStyle {
@@ -153,6 +155,7 @@ const engraving: GlobeStyle = {
 		pulseReach: 5,
 		appearMs: 220,
 		spotColor: BONE,
+		clearDashes: 36,
 	},
 	labels: {
 		font: labelFont,

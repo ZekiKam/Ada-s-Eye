@@ -31,7 +31,7 @@ Settings come from environment variables or `.env`. They are `DATA_DIR`, `WILDFI
 
 - `GET /api/get_all_points`: every recorded wildfire.
 - `GET /api/get_anomalies`: every anomaly, with brightness and satellite confidence.
-- `GET /api/request_anomaly?longitude=&latitude=&year=`: the most confident anomaly within `QUERY_RADIUS_KM` (default 50 km) of the spot in that year. If there is none, it returns confidence 0 and the search radius.
+- `GET /api/request_anomaly?longitude=&latitude=&year=`: centred on the queried spot, the confidence of the most confident anomaly within `QUERY_RADIUS_KM` (default 50 km) of it in that year, and the radius from the spot that reaches it. If there is none, it returns confidence 0 and the search radius.
 
 ## Run
 

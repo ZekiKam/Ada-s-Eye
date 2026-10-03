@@ -118,26 +118,26 @@ async def get_anomalies():
     response_model=Anomaly,
 )
 async def request_anomaly(request: Annotated[RequestAnomaly, Query()]):
-    """The most confident anomaly near this spot in this year, or confidence 0
-    over the whole search radius if there is none."""
+    """Centred on the queried spot: the confidence of the most confident
+    anomaly near it in that year, and the radius that reaches it. With none,
+    confidence 0 over the whole search radius."""
+
+    def distance_km(a: Detection) -> float:
+        return haversine_km(request.longitude, request.latitude, a.longitude, a.latitude)
+
     nearby = [
         a
         for a in anomalies
-        if a.detected_at.year == request.year
-        and haversine_km(request.longitude, request.latitude, a.longitude, a.latitude)
-        <= settings.query_radius_km
+        if a.detected_at.year == request.year and distance_km(a) <= settings.query_radius_km
     ]
     if not nearby:
-        return Anomaly(
-            longitude=request.longitude,
-            latitude=request.latitude,
-            confidence=0.0,
-            radius=settings.query_radius_km * 1000,
-        )
-    best = max(nearby, key=lambda a: (a.confidence, a.brightness))
+        confidence, radius = 0.0, settings.query_radius_km * 1000
+    else:
+        best = max(nearby, key=lambda a: (a.confidence, a.brightness))
+        confidence, radius = best.confidence, distance_km(best) * 1000 + best.radius_m
     return Anomaly(
-        longitude=best.longitude,
-        latitude=best.latitude,
-        confidence=best.confidence,
-        radius=best.radius_m,
+        longitude=request.longitude,
+        latitude=request.latitude,
+        confidence=confidence,
+        radius=radius,
     )
