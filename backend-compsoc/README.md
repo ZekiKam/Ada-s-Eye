@@ -1,6 +1,6 @@
 # backend-compsoc
 
-Compares recorded wildfires with NASA satellite fire detections and flags **anomalies**: hot detections that no recorded wildfire explains, fires spreading beyond a recorded wildfire in a dry place, and detections far more intense than normal.
+Compares recorded wildfires with NASA satellite fire detections. Given a point and a year, it checks on the fly whether there is an **anomaly** there and, if so, works out its intensity and details.
 
 ## Data
 
@@ -22,27 +22,16 @@ The two CSV files in `data/` are synthetic: about 5,000 wildfires and 67,000 det
 
 Rows that fail to parse are logged and skipped.
 
-## Anomaly rules
+## Anomaly detection
 
-A wildfire **explains** a detection when the distance between them is at most the fire's `radius_m` plus the detection's pixel radius plus `MATCH_DISTANCE_KM` (default 10 km), and the fire's date is from `MATCH_DAYS` (default 1) days after the detection to `BURN_DAYS` (default 14) days before it, so it was still burning.
+`find_anomaly` in `src/anomalies.py` takes the queried point and year, the search radius, and the loaded wildfires, detections and dryness grid. It returns the anomaly found there, or `None`.
 
-A detection is an anomaly for one or more of these reasons:
-
-- **hot**: no wildfire explains it, and its `brightness` is at least `BRIGHTNESS_THRESHOLD` (default 340 K).
-- **spreading**: no wildfire explains it, but it is within a further `SPREAD_KM` (default 50 km) × dryness of a burning wildfire, where dryness is that of the detection's location. Fire spreads further in dry places, so the zone around a desert fire reaches 50 km and around a rainforest fire 5 km.
-- **intense**: its brightness or the log of its `frp` is at least `INTENSITY_Z` (default 2) robust standard deviations (scaled median absolute deviation) above the median of all detections. This holds even when a wildfire explains it. It needs at least 10 detections to judge what is normal.
-
-An anomaly's confidence starts from the satellite's. Being in a spread zone adds up to half of the remaining gap (scaled by dryness and by how close it is to the fire), and so does intensity (scaled by how far it is towards `INTENSITY_Z`).
-
-Anomalous detections are then grouped into the fires they came from (`src/grouping.py`): two are the same fire when they are within `GROUP_KM` (default 20 km) and `BURN_DAYS` of each other, and so is anything linked to either. A group's size is its radius, from the middle of its detections to the far edge of the furthest one's pixel.
-
-Settings come from environment variables or `.env`. They are `DATA_DIR`, `WILDFIRES_FILE`, `DETECTIONS_FILE`, `CLIMATE_FILE`, `BRIGHTNESS_THRESHOLD`, `MATCH_DISTANCE_KM`, `MATCH_DAYS`, `BURN_DAYS`, `SPREAD_KM`, `INTENSITY_Z`, `GROUP_KM` and `QUERY_RADIUS_KM`.
+Settings come from environment variables or `.env`. They are `DATA_DIR`, `WILDFIRES_FILE`, `DETECTIONS_FILE`, `CLIMATE_FILE` and `QUERY_RADIUS_KM`.
 
 ## API
 
 - `GET /api/get_all_points`: every recorded wildfire.
-- `GET /api/get_anomalies`: every anomaly, with its brightness, `frp`, confidence, the satellite's own confidence and its `reasons`.
-- `GET /api/request_anomaly?longitude=&latitude=&year=`: the largest anomaly group that started in that year with its middle within `QUERY_RADIUS_KM` (default 250 km) of the spot: its middle, `radius`, `confidence` and `distance` from the spot (metres). If there is none, it returns the spot, confidence 0 and the search radius.
+- `GET /api/request_anomaly?longitude=&latitude=&year=`: the anomaly within `QUERY_RADIUS_KM` (default 250 km) of the spot in that year, found on the fly: its middle, `radius`, `confidence`, `intensity` and `distance` from the spot (metres). If there is none, it returns the spot, confidence 0, intensity 0 and the search radius.
 - `GET /api/leaderboard`: the five largest anomalies found through `request_anomaly` so far, by radius (then number of detections), each credited to its first finder. Held in memory, so it empties on restart. When a query finds an anomaly that makes the board, its response carries a `claim` with a token.
 - `PUT /api/leaderboard/{id}/name` with `{"token", "name"}`: the finder names their entry, once (1–24 characters).
 

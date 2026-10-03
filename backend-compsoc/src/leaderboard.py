@@ -1,7 +1,7 @@
 """The largest anomalies found through request_anomaly.
 
 Held in memory only, so it empties when the server restarts. Size is an
-anomaly's radius in km (see grouping.py), then how many detections it has.
+anomaly's radius in km, then how many detections it has.
 Each anomaly is listed once, credited to whoever found it first. Finding one
 hands back a token, which lets that finder (and nobody else) put a name to it.
 """
@@ -9,14 +9,14 @@ hands back a token, which lets that finder (and nobody else) put a name to it.
 import secrets
 from dataclasses import dataclass
 
-from grouping import AnomalyGroup
+from anomalies import FoundAnomaly
 
 
 @dataclass
 class Entry:
     id: str
     token: str
-    anomaly: AnomalyGroup
+    anomaly: FoundAnomaly
     name: str | None = None
 
 
@@ -37,10 +37,10 @@ class Leaderboard:
         self.length = length
         self.entries: list[Entry] = []  # largest first
 
-    def submit(self, anomaly: AnomalyGroup) -> Entry | None:
+    def submit(self, anomaly: FoundAnomaly) -> Entry | None:
         """Adds a newly found anomaly if it is among the largest. Returns its
         entry, or None if it is too small or already listed."""
-        if any(e.anomaly is anomaly for e in self.entries):
+        if any(e.anomaly == anomaly for e in self.entries):
             return None
         entry = Entry(
             id=secrets.token_urlsafe(8),
@@ -49,7 +49,7 @@ class Leaderboard:
         )
         # Stable sort: on a tie, the earlier find keeps its place.
         ranked = sorted(
-            [*self.entries, entry], key=lambda e: e.anomaly.size, reverse=True
+            [*self.entries, entry], key=lambda e: (e.anomaly.radius_km, e.anomaly.detections), reverse=True
         )[: self.length]
         if entry not in ranked:
             return None
