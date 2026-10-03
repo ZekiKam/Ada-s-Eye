@@ -151,6 +151,8 @@ function EventMarker({
 		flyTo(longitude, latitude);
 	};
 
+	// Marker materials are `transparent` only so they sort after the country
+	// labels (also transparent) by renderOrder and draw on top of them.
 	return (
 		<group>
 			<Line
@@ -174,21 +176,33 @@ function EventMarker({
 					</mesh>
 					<mesh renderOrder={2}>
 						<circleGeometry args={[m.outline, 32]} />
-						<meshBasicMaterial color={style.ink} depthWrite={false} />
+						<meshBasicMaterial
+							color={style.ink}
+							transparent
+							depthWrite={false}
+						/>
 					</mesh>
 					<mesh renderOrder={3}>
 						<circleGeometry args={[1, 32]} />
-						<meshBasicMaterial color={color} depthWrite={false} />
+						<meshBasicMaterial color={color} transparent depthWrite={false} />
 					</mesh>
 					{selected && (
 						<>
 							<mesh renderOrder={2}>
 								<ringGeometry args={[...m.selectionHalo, 48]} />
-								<meshBasicMaterial color={style.ink} depthWrite={false} />
+								<meshBasicMaterial
+									color={style.ink}
+									transparent
+									depthWrite={false}
+								/>
 							</mesh>
 							<mesh renderOrder={3}>
 								<ringGeometry args={[...m.selectionRing, 48]} />
-								<meshBasicMaterial color={color} depthWrite={false} />
+								<meshBasicMaterial
+									color={color}
+									transparent
+									depthWrite={false}
+								/>
 							</mesh>
 						</>
 					)}

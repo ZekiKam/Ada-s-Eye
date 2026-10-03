@@ -1,5 +1,12 @@
-import { geoCircle, geoEquirectangular, geoGraticule10, geoPath } from "d3-geo";
-import type { MultiLineString } from "geojson";
+import {
+	geoArea,
+	geoCentroid,
+	geoCircle,
+	geoEquirectangular,
+	geoGraticule10,
+	geoPath,
+} from "d3-geo";
+import type { MultiLineString, Polygon } from "geojson";
 import { Vector3 } from "three";
 import { feature, mesh, neighbors } from "topojson-client";
 import type { GeometryCollection, Topology } from "topojson-specification";
@@ -15,6 +22,7 @@ export const ALTITUDE = {
 	borders: 1.0014,
 	coastline: 1.0016,
 	footprint: 1.0018,
+	label: 1.0019,
 	marker: 1.002,
 } as const;
 
@@ -83,10 +91,21 @@ export interface CountryShape {
 	slot: number;
 }
 
+/** Where a country's name is drawn. */
+export interface CountryLabel {
+	name: string;
+	longitude: number;
+	latitude: number;
+	/** Area of the labelled polygon in steradians. Bigger countries label first. */
+	area: number;
+}
+
 export interface Atlas {
 	/** Land as white on black, equirectangular, 2:1. */
 	landMask: HTMLCanvasElement;
 	countries: CountryShape[];
+	/** Largest country first. */
+	labels: CountryLabel[];
 	coastlines: Float32Array;
 	borders: Float32Array;
 	graticule: Float32Array;
@@ -171,6 +190,36 @@ export function paintCountries(
 	return canvas;
 }
 
+/**
+ * Anchors a label at the centroid of a country's largest polygon, so
+ * overseas territories (French Guiana, Alaska) don't drag it off the mainland.
+ */
+function countryLabel(country: GeoJSON.Feature): CountryLabel | null {
+	const name = country.properties?.name;
+	const geometry = country.geometry;
+	if (typeof name !== "string" || !geometry) return null;
+	let polygons: Polygon[];
+	if (geometry.type === "Polygon") polygons = [geometry];
+	else if (geometry.type === "MultiPolygon") {
+		polygons = geometry.coordinates.map((coordinates) => ({
+			type: "Polygon",
+			coordinates,
+		}));
+	} else return null;
+
+	let largest = polygons[0];
+	let area = geoArea(largest);
+	for (const polygon of polygons.slice(1)) {
+		const a = geoArea(polygon);
+		if (a > area) {
+			largest = polygon;
+			area = a;
+		}
+	}
+	const [longitude, latitude] = geoCentroid(largest);
+	return { name, longitude, latitude, area };
+}
+
 let atlasPromise: Promise<Atlas> | null = null;
 
 /** Natural Earth 50 m outlines, fetched once and shared. */
@@ -197,10 +246,15 @@ export function loadAtlas(maskWidth = 4096): Promise<Atlas> {
 		const countries = feature(countriesTopo, countriesObject).features.map(
 			(country, i) => ({ feature: country, slot: slots[i] }),
 		);
+		const labels = countries
+			.map((c) => countryLabel(c.feature))
+			.filter((label) => label !== null)
+			.sort((a, b) => b.area - a.area);
 
 		return {
 			landMask: rasterizeLand(feature(landTopo, landObject), maskWidth),
 			countries,
+			labels,
 			coastlines: linesToSegments(coast.coordinates, ALTITUDE.coastline),
 			borders: linesToSegments(borders.coordinates, ALTITUDE.borders),
 			graticule: linesToSegments(

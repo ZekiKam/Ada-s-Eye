@@ -1,3 +1,6 @@
+// troika reads woff but not these woff2 files, so labels use the static package.
+import labelFont from "@fontsource/geist-mono/files/geist-mono-latin-600-normal.woff?url";
+
 /**
  * Every number and colour the globe uses. Components and shaders read only
  * from the active preset, so changing ACTIVE_PRESET (or one value below)
@@ -37,6 +40,7 @@ export interface GlobeStyle {
   borders: LineStyle;
   graticule: LineStyle;
   marker: MarkerStyle;
+  labels: LabelStyle;
 }
 
 export interface LineStyle {
@@ -67,6 +71,31 @@ export interface MarkerStyle {
   pulseReach: number;
   /** Fade-in time for markers that appear between polls. */
   appearMs: number;
+}
+
+export interface LabelStyle {
+  /** Font file for the SDF text (woff, ttf or otf). */
+  font: string;
+  color: string;
+  /** Outline behind the text so it reads on any fill. */
+  halo: string;
+  /** Halo width and blur, as fractions of the font size. */
+  haloWidth: number;
+  haloBlur: number;
+  /** Font size in CSS pixels, kept constant at every zoom. */
+  sizePx: number;
+  /** Ems. */
+  letterSpacing: number;
+  /** A country is labelled once its largest landmass spans this many CSS pixels. */
+  minExtentPx: number;
+  /**
+   * Fade toward the limb, in cos(angle between surface normal and camera):
+   * hidden below the first value, fully opaque above the second.
+   */
+  horizon: readonly [hidden: number, opaque: number];
+  /** Minimum gap between labels in CSS pixels. Labels that would overlap are dropped. */
+  gapPx: number;
+  fadeMs: number;
 }
 
 const INK = "#0b1046";
@@ -103,6 +132,19 @@ const engraving: GlobeStyle = {
     pulsePeriod: 1.6,
     pulseReach: 5,
     appearMs: 220,
+  },
+  labels: {
+    font: labelFont,
+    color: INK,
+    halo: "#fffaeb",
+    haloWidth: 0.16,
+    haloBlur: 0.12,
+    sizePx: 10,
+    letterSpacing: 0.12,
+    minExtentPx: 44,
+    horizon: [0.25, 0.45],
+    gapPx: 6,
+    fadeMs: 180,
   },
 };
 
