@@ -19,7 +19,7 @@
 	// /api/* to it. Overridden in local dev by .dev.vars. BACKEND_SECRET is set
 	// with `wrangler secret put BACKEND_SECRET`.
 	"vars": {
-		"BACKEND_URL": "https://compsoc-api.YOUR-DOMAIN.com"
+		"BACKEND_URL": "https://compsoc-api.condict.dev"
 	}
 	/**
 	 * Smart Placement
