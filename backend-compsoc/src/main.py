@@ -1,9 +1,7 @@
 import logging
-import datetime
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from schema import RequestOut
 from schema import *
 
 logger = logging.getLogger(__name__)
@@ -22,6 +20,21 @@ settings = Settings()
 app = FastAPI()
 
 
-@app.get("/api/get_all_points", status_code=204, operation_id="getAllPoints", response_model=list[GlobePoint])
-async def get_all_points(timeframe_start, timeframe_end):
-    pass
+@app.get(
+    "/api/get_all_points",
+    operation_id="getAllPoints",
+    response_model=list[GlobePoint],
+)
+async def get_all_points():
+    # TODO: past wildfires from real-world data.
+    return []
+
+
+@app.post(
+    "/api/request_anomaly",
+    operation_id="requestAnomaly",
+    response_model=Anomaly,
+)
+async def request_anomaly(request: RequestAnomaly):
+    # TODO: the anomaly query about one point.
+    raise HTTPException(status_code=501, detail="Anomaly queries are not set up yet")

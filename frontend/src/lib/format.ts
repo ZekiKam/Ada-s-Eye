@@ -12,6 +12,18 @@ const DATE = new Intl.DateTimeFormat("en-GB", {
 	timeZone: "UTC",
 });
 
+/** "11 Mar 2011", in UTC. */
+export function formatDate(unixSeconds: number): string {
+	return DATE.format(unixSeconds * 1000);
+}
+
+/** "38.30°N 142.37°E". */
+export function formatLonLat(longitude: number, latitude: number): string {
+	const lat = `${Math.abs(latitude).toFixed(2)}°${latitude < 0 ? "S" : "N"}`;
+	const lon = `${Math.abs(longitude).toFixed(2)}°${longitude < 0 ? "W" : "E"}`;
+	return `${lat} ${lon}`;
+}
+
 /** "just now", "4 min ago", "3 h ago", "2 d ago", then "11 Mar 2011". */
 export function formatAge(unixSeconds: number, nowMs: number): string {
 	const s = Math.max(0, Math.round(nowMs / 1000 - unixSeconds));

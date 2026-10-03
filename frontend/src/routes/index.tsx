@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { FIRST_YEAR, LAST_YEAR } from "@/config";
 import { useEvents } from "@/data/useEvents";
 import { GlobeCanvas } from "@/globe/GlobeCanvas";
+import { AnomalyQuery } from "@/hud/AnomalyQuery";
 import { Timeline } from "@/hud/Timeline";
 import { Wordmark } from "@/hud/Wordmark";
 import { usePrefersReducedMotion } from "@/lib/hooks";
@@ -51,6 +52,8 @@ function HomePage() {
 
 	const events = useEvents(year);
 	const select = useGlobeStore((s) => s.select);
+	const selected = useGlobeStore((s) => s.selected);
+	const selectedKey = useGlobeStore((s) => s.selectedKey);
 
 	// Replace, not push: scrubbing would otherwise fill the back button.
 	const changeYear = (next: number) => {
@@ -104,11 +107,14 @@ function HomePage() {
 				{/* Arrives with the globe. */}
 				<div
 					className={cn(
-						"absolute right-(--hud-right) bottom-(--hud-bottom) left-(--hud-left) mx-auto max-w-5xl transition-opacity duration-700",
+						"absolute right-(--hud-right) bottom-(--hud-bottom) left-(--hud-left) mx-auto flex max-w-5xl flex-col items-center gap-2 transition-opacity duration-700",
 						!settled && "invisible opacity-0",
 					)}
 				>
-					<Timeline year={year} onChange={changeYear} />
+					{selected && <AnomalyQuery key={selectedKey} point={selected} />}
+					<div className="w-full">
+						<Timeline year={year} onChange={changeYear} />
+					</div>
 				</div>
 			</div>
 		</main>

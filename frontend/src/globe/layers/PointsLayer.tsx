@@ -9,16 +9,16 @@ import {
 	Quaternion,
 	Vector3,
 } from "three";
-import type { GlobePoint } from "@/api/schema";
+import type { GlobePoint } from "@/api/generated/model";
 import { NEW_EVENT_AGE_S } from "@/config";
-import { type Category, categoryOf } from "@/data/categories";
-import { eventKey } from "@/data/events";
+import { eventKey, eventSeconds, WILDFIRE } from "@/data/events";
 import { Tooltip } from "@/hud/Tooltip";
 import { useCoarsePointer } from "@/lib/hooks";
 import { useGlobeStore } from "@/state/store";
 import type { GlobeStyle } from "@/theme/globe-style";
 import { toneColor } from "@/theme/tones";
 import { ALTITUDE, footprintLoop, lonLatToVector3 } from "../geo";
+import { useLongPress } from "../useLongPress";
 
 interface PointsLayerProps {
 	events: readonly GlobePoint[];
@@ -42,7 +42,6 @@ export function PointsLayer({
 						key={id}
 						id={id}
 						event={event}
-						category={categoryOf(event.event_type)}
 						style={style}
 						reducedMotion={reducedMotion}
 						touch={touch}
@@ -59,7 +58,6 @@ const scratch = new Vector3();
 interface EventMarkerProps {
 	id: string;
 	event: GlobePoint;
-	category: Category;
 	style: GlobeStyle;
 	reducedMotion: boolean;
 	/** Finger input: a bigger hit area, and the tooltip follows the selection. */
@@ -69,14 +67,14 @@ interface EventMarkerProps {
 function EventMarker({
 	id,
 	event,
-	category,
 	style,
 	reducedMotion,
 	touch,
 }: EventMarkerProps) {
-	const { longitude, latitude, range } = event;
+	const { longitude, latitude, radius } = event;
 	const m = style.marker;
-	const color = toneColor(category.tone);
+	const color = toneColor(WILDFIRE.tone);
+	const seconds = useMemo(() => eventSeconds(event), [event]);
 
 	const selected = useGlobeStore((s) => s.selectedKey === id);
 	const hovered = useGlobeStore((s) => s.hoveredKey === id);
@@ -97,8 +95,8 @@ function EventMarker({
 		[position],
 	);
 	const footprint = useMemo(
-		() => footprintLoop(longitude, latitude, range, ALTITUDE.footprint),
-		[longitude, latitude, range],
+		() => footprintLoop(longitude, latitude, radius, ALTITUDE.footprint),
+		[longitude, latitude, radius],
 	);
 
 	const scaled = useRef<Group>(null);
@@ -128,7 +126,7 @@ function EventMarker({
 		const ring = pulse.current;
 		const ringMaterial = pulseMaterial.current;
 		if (ring && ringMaterial) {
-			const age = Date.now() / 1000 - event.event_time;
+			const age = Date.now() / 1000 - seconds;
 			ring.visible = !reducedMotion && age >= 0 && age < NEW_EVENT_AGE_S;
 			if (ring.visible) {
 				const t = (clock.elapsedTime % m.pulsePeriod) / m.pulsePeriod;
@@ -149,12 +147,18 @@ function EventMarker({
 		if (useGlobeStore.getState().hoveredKey === id) hover(null);
 		document.body.style.cursor = "";
 	};
-	const onClick = (e: ThreeEvent<MouseEvent>) => {
-		e.stopPropagation();
-		if (e.delta > 4) return;
-		select(id);
+	const choose = () => {
+		select(event);
 		flyTo(longitude, latitude);
 	};
+	// A single click does nothing, but must not reach the globe, which clears
+	// the selection. Double-click, or a long press on touch, selects.
+	const onClick = (e: ThreeEvent<MouseEvent>) => e.stopPropagation();
+	const onDoubleClick = (e: ThreeEvent<MouseEvent>) => {
+		e.stopPropagation();
+		if (e.delta <= 4) choose();
+	};
+	const onPointerDown = useLongPress(choose);
 
 	// Marker materials are `transparent` only so they sort after the country
 	// labels (also transparent) by renderOrder and draw on top of them.
@@ -175,6 +179,8 @@ function EventMarker({
 						onPointerOut={onOut}
 						onPointerMove={(e) => e.stopPropagation()}
 						onClick={onClick}
+						onDoubleClick={onDoubleClick}
+						onPointerDown={onPointerDown}
 					>
 						<circleGeometry args={[touch ? m.touchHitArea : m.hitArea, 16]} />
 						<meshBasicMaterial visible={false} />
@@ -223,7 +229,7 @@ function EventMarker({
 				</group>
 				{(hovered || (touch && selected)) && (
 					<Html zIndexRange={[30, 20]} style={{ pointerEvents: "none" }}>
-						<Tooltip event={event} category={category} />
+						<Tooltip event={event} />
 					</Html>
 				)}
 			</group>

@@ -1,6 +1,6 @@
 import { Canvas } from "@react-three/fiber";
 import { useEffect, useMemo, useState } from "react";
-import type { GlobePoint } from "@/api/schema";
+import type { GlobePoint } from "@/api/generated/model";
 import { usePrefersReducedMotion } from "@/lib/hooks";
 import { useGlobeStore } from "@/state/store";
 import { globeStyle } from "@/theme/globe-style";
@@ -65,7 +65,8 @@ export function GlobeCanvas({ events }: GlobeCanvasProps) {
 	return (
 		<Canvas
 			// The page fades the globe in; land and lines then fade in once the atlas loads.
-			className="absolute! inset-0"
+			// No text selection or iOS callout when a finger long-presses a point.
+			className="absolute! inset-0 select-none [-webkit-touch-callout:none]"
 			flat
 			dpr={[1, 2]}
 			gl={{ antialias: true, alpha: true }}

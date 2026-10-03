@@ -33,8 +33,13 @@ export async function customFetch<T>(
 	if (!response.ok) {
 		let message = `${response.status} ${response.statusText}`;
 		try {
-			const body = (await response.json()) as { error?: string };
+			// The Worker sends `error`; FastAPI's HTTPException sends `detail`.
+			const body = (await response.json()) as {
+				error?: string;
+				detail?: unknown;
+			};
 			if (body.error) message = body.error;
+			else if (typeof body.detail === "string") message = body.detail;
 		} catch {
 			// Body was not JSON; keep the status line.
 		}

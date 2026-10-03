@@ -1,41 +1,29 @@
 import { useQuery } from "@tanstack/react-query";
-import type { GlobePoint } from "@/api/schema";
-import { POLL_INTERVAL_MS } from "@/config";
-import { exampleSource } from "./example";
-import { EXAMPLE_EVENTS } from "./example-events";
+import { useMemo } from "react";
+import { getGetAllPointsQueryOptions } from "@/api/generated";
+import type { GlobePoint } from "@/api/generated/model";
+import { eventSeconds } from "./events";
 
-// Swap for the Orval client once the backend schema settles, e.g.
-// const fetchEvents = (query: Query, signal?: AbortSignal) =>
-// 	getAllPoints(query, { signal });
-const fetchEvents = exampleSource(EXAMPLE_EVENTS);
+/**
+ * Every point, fetched once per session: they are past wildfires, so they
+ * never go stale. `main.tsx` starts the request on page load.
+ */
+export const allPointsQuery = getGetAllPointsQueryOptions({
+	query: { staleTime: Number.POSITIVE_INFINITY },
+});
 
 const NO_EVENTS: GlobePoint[] = [];
 
-/** First and last second of a calendar year, UTC, as UNIX timestamps. */
-function yearRange(year: number): { start: number; end: number } {
-	return {
-		start: Date.UTC(year, 0, 1) / 1000,
-		end: Date.UTC(year + 1, 0, 1) / 1000 - 1,
-	};
-}
-
-/**
- * Fetches the points inside one calendar year. Only the year still under way
- * is polled: earlier years are settled, so they are fetched once and stay in
- * the query cache, and stepping back to one shows it immediately. Empty until
- * the first fetch succeeds; a failed refetch keeps the last data.
- */
+/** The points inside one calendar year (UTC). Empty until the fetch succeeds. */
 export function useEvents(year: number): GlobePoint[] {
-	const { start, end } = yearRange(year);
-	const ongoing = Date.now() / 1000 <= end;
-	const query = useQuery({
-		queryKey: ["events", year],
-		queryFn: ({ signal }) =>
-			fetchEvents({ time_range_start: start, time_range_end: end }, signal),
-		refetchInterval: ongoing ? POLL_INTERVAL_MS : false,
-		refetchIntervalInBackground: false,
-		staleTime: ongoing ? POLL_INTERVAL_MS : Number.POSITIVE_INFINITY,
-		retry: 1,
-	});
-	return query.data ?? NO_EVENTS;
+	const { data } = useQuery(allPointsQuery);
+	return useMemo(() => {
+		if (!data) return NO_EVENTS;
+		const start = Date.UTC(year, 0, 1) / 1000;
+		const end = Date.UTC(year + 1, 0, 1) / 1000;
+		return data.filter((e) => {
+			const t = eventSeconds(e);
+			return t >= start && t < end;
+		});
+	}, [data, year]);
 }
