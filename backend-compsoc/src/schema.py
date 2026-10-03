@@ -23,6 +23,10 @@ class GlobePoint(BaseModel):
 class RequestAnomaly(BaseModel):
     longitude: float
     latitude: float
-    event_type: str
     event_time: str
-    
+
+class Anomaly(BaseModel):
+    longitude: float
+    latitude: float
+    confidence: float
+    radius: float
