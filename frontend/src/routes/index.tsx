@@ -5,7 +5,9 @@ import { FIRST_YEAR, LAST_YEAR } from "@/config";
 import { useEvents } from "@/data/useEvents";
 import { useFoundAnomalies } from "@/data/useFoundAnomalies";
 import { GlobeCanvas } from "@/globe/GlobeCanvas";
+import { Controls } from "@/hud/Controls";
 import { Leaderboard } from "@/hud/Leaderboard";
+import { Premise } from "@/hud/Premise";
 import { Timeline } from "@/hud/Timeline";
 import { Wordmark } from "@/hud/Wordmark";
 import { usePrefersReducedMotion } from "@/lib/hooks";
@@ -135,13 +137,25 @@ function HomePage() {
 					<Leaderboard onPick={pickEntry} />
 				</div>
 
+				{/*
+				 * Controls bottom left, premise bottom right. Beside the timeline from
+				 * `xl`; below that they sit above it, wrapping onto two rows on a phone.
+				 */}
 				<div
 					className={cn(
-						"absolute right-(--hud-right) bottom-(--hud-bottom) left-(--hud-left) mx-auto max-w-5xl transition-opacity duration-700",
+						"absolute right-(--hud-right) bottom-(--hud-bottom) left-(--hud-left) flex flex-wrap items-end gap-2 transition-opacity duration-700 xl:flex-nowrap",
 						!settled && "invisible opacity-0",
 					)}
 				>
-					<Timeline year={year} onChange={changeYear} />
+					<div className="max-w-full xl:w-80 xl:shrink-0">
+						<Controls />
+					</div>
+					<div className="order-last mx-auto w-full max-w-5xl xl:order-0 xl:min-w-0 xl:flex-1">
+						<Timeline year={year} onChange={changeYear} />
+					</div>
+					<div className="ml-auto flex max-w-full justify-end xl:w-80 xl:shrink-0">
+						<Premise />
+					</div>
 				</div>
 			</div>
 		</main>
