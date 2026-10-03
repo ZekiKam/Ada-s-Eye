@@ -1,23 +1,20 @@
 import type { GlobeEvent } from "@/api/schema";
+import { categoryOf } from "@/data/categories";
 import { byNewest, eventKey } from "@/data/events";
-import { formatAge, formatCoordinates, formatDistance } from "@/lib/format";
+import { formatAge, formatCoordinates } from "@/lib/format";
 import { useNow } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 import { useGlobeStore } from "@/state/store";
 import { toneVar } from "@/theme/tones";
-import { categoryOf } from "@/views/registry";
-import type { ViewDefinition } from "@/views/types";
 import { Empty, Panel } from "./Panel";
 
 const MAX_ITEMS = 50;
 
 /** Newest first. A click flies to the event and selects it. */
 export function Feed({
-	view,
 	events,
 	emptyText,
 }: {
-	view: ViewDefinition;
 	events: readonly GlobeEvent[];
 	emptyText: string;
 }) {
@@ -44,7 +41,7 @@ export function Feed({
 				<ol className="min-h-0 flex-1 overflow-y-auto py-1">
 					{items.map((event) => {
 						const id = eventKey(event);
-						const category = categoryOf(view, event.event_type);
+						const category = categoryOf(event.event_type);
 						return (
 							<li key={id}>
 								<button
@@ -68,9 +65,7 @@ export function Feed({
 									/>
 									<span className="truncate text-sm">{category.label}</span>
 									<span className="font-mono text-xs text-muted-foreground">
-										{view.hasTimeWindow
-											? formatAge(event.event_time, now)
-											: formatDistance(event.range)}
+										{formatAge(event.event_time, now)}
 									</span>
 									<span />
 									<span className="col-span-2 font-mono text-[11px] text-muted-foreground">

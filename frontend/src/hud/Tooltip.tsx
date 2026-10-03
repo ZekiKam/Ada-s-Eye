@@ -1,7 +1,7 @@
 import type { GlobeEvent } from "@/api/schema";
+import type { Category } from "@/data/categories";
 import { formatAge, formatDistance } from "@/lib/format";
 import { toneVar } from "@/theme/tones";
-import type { Category } from "@/views/types";
 
 export function Tooltip({
 	event,

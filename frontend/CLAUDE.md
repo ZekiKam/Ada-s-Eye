@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Ada's Eye frontend (AdaHack 2026): a React SPA served by a Cloudflare Worker. One full-viewport stylised globe with a HUD and three switchable views. Package manager is **bun**. `../docs/PRD.md` sections 6 and 7 are the spec.
+Ada's Eye frontend (AdaHack 2026): a React SPA served by a Cloudflare Worker. One full-viewport stylised globe with a HUD, showing CompSoc's Anomaly Watch. Package manager is **bun**. `../docs/PRD.md` sections 6 and 7 are the spec.
 
 ## Commands
 
@@ -12,7 +12,7 @@ Ada's Eye frontend (AdaHack 2026): a React SPA served by a Cloudflare Worker. On
 - `bun run format`: apply Biome formatting, safe lint fixes, and import sorting
 - `bun run deploy`: build and `wrangler deploy`
 - `bun run cf-typegen`: regenerate `worker-configuration.d.ts` after changing bindings in `wrangler.jsonc`
-- `bun run sync`: generate Orval clients from `../backend-*/openapi.json` into `src/api/generated/` (gitignored). Fails, naming the backend, if any `openapi.json` is missing. **Not yet chained into `dev`/`build`** because the backend schemas are still changing.
+- `bun run sync`: generate the Orval client from `../backend-compsoc/openapi.json` into `src/api/generated/` (gitignored). Fails if the `openapi.json` is missing. **Not yet chained into `dev`/`build`** because the backend schema is still changing.
 
 There is no test runner set up.
 
@@ -20,13 +20,13 @@ There is no test runner set up.
 
 **One deployable, two runtimes.** `@cloudflare/vite-plugin` builds the browser app (`src/`) and the Worker (`worker/index.ts`) together. Wrangler serves static assets first. `assets.not_found_handling: "single-page-application"` sends unknown paths to `index.html` so client-side routes resolve. `run_worker_first: ["/api/*"]` sends all API traffic to the Worker, even for browser navigations.
 
-**Three-way proxy.** The Worker does not implement the API. `worker/index.ts` forwards `/api/<view>/*`, path and query unchanged, to that view's backend: `BACKEND_COMPSOC_URL`, `BACKEND_OPTIVER_URL` or `BACKEND_GRESEARCH_URL`. The backends run on a team member's PC behind a named Cloudflare Tunnel. If `BACKEND_SECRET` is set, it is sent as `X-Backend-Secret`. The Worker's own errors are JSON `{ "error": "..." }`: 404 for an unknown view, 500 for a missing variable, 502 when unreachable, 504 after 8 seconds. In production the URLs come from `vars` in `wrangler.jsonc` and `BACKEND_SECRET` is a Wrangler secret. Locally all come from `.dev.vars` (gitignored, copy from `.dev.vars.example`). Rerun `bun run cf-typegen` after changing them.
+**Proxy.** The Worker does not implement the API. `worker/index.ts` forwards `/api/*`, path and query unchanged, to `BACKEND_URL` (`backend-compsoc`, on a team member's PC behind a named Cloudflare Tunnel). If `BACKEND_SECRET` is set, it is sent as `X-Backend-Secret`. The Worker's own errors are JSON `{ "error": "..." }`: 500 for a missing `BACKEND_URL`, 502 when unreachable, 504 after 8 seconds. In production `BACKEND_URL` comes from `vars` in `wrangler.jsonc` and `BACKEND_SECRET` is a Wrangler secret. Locally both come from `.dev.vars` (gitignored, copy from `.dev.vars.example`). Rerun `bun run cf-typegen` after changing them.
 
-**Data (temporary, pending the backend schema).** `src/api/schema.ts` holds hand-written stand-in types: `Query` (`time_range_start`/`time_range_end`, UNIX seconds) and `GlobeEvent` (`longitude`, `latitude`, `range` in metres, `event_type`, `event_time`). Each view in `src/views/<id>/index.ts` is a `ViewDefinition` whose `fetchEvents(query, signal)` currently serves the constant list in `src/views/<id>/example.ts` through `exampleSource()`. To go live, replace `fetchEvents` with the Orval-generated function, set `isMock: false`, and swap `schema.ts` for the generated types. Nothing in `globe/` or `hud/` knows about a specific backend. Events have no id, so `eventKey()` in `src/data/events.ts` derives one.
+**Data (temporary, pending the backend schema).** `src/api/schema.ts` holds hand-written stand-in types: `Query` (`time_range_start`/`time_range_end`, UNIX seconds) and `GlobeEvent` (`longitude`, `latitude`, `range` in metres, `event_type`, `event_time`). `fetchEvents` in `src/data/useEvents.ts` currently serves the constant list in `src/data/example-events.ts` through `exampleSource()`. To go live, replace it with the Orval-generated function and swap `schema.ts` for the generated types. `src/data/categories.ts` maps known `event_type` values to a label and tone; unknown ones render neutral. Events have no id, so `eventKey()` in `src/data/events.ts` derives one.
 
-**Polling.** `useViewEvents(view, windowSeconds)` (`src/data/`) wraps TanStack Query: key `["events", viewId, windowSeconds]` (window is `null` for views without a time window), absolute times computed at fetch time, `refetchInterval` = `POLL_INTERVAL_MS` (10 s, `VITE_POLL_INTERVAL_MS`), no polling while the tab is hidden, previous data kept while a new window loads. Results stay in the query cache for the session. With no data, nothing is drawn. Status is `loading` / `live` / `stale` / `offline`.
+**Polling.** `useEvents(windowSeconds)` (`src/data/`) wraps TanStack Query: key `["events", windowSeconds]`, absolute times computed at fetch time, `refetchInterval` = `POLL_INTERVAL_MS` (10 s, `VITE_POLL_INTERVAL_MS`), no polling while the tab is hidden, previous data kept while a new window loads. Results stay in the query cache for the session. With no data, nothing is drawn. Status is `loading` / `live` / `stale` / `offline`.
 
-**State.** URL search params (`?view=`, `?window=`) are validated in `src/routes/index.tsx`. The zustand store (`src/state/store.ts`) holds hidden categories per view, the selected and hovered event keys, and fly-to requests.
+**State.** The `?window=` search param is validated in `src/routes/index.tsx`. The zustand store (`src/state/store.ts`) holds hidden categories, the selected and hovered event keys, and fly-to requests.
 
 **Globe (`src/globe/`).** Plain three.js through `@react-three/fiber` and drei (no `r3f-globe`). `GlobeSurface` is one `ShaderMaterial` (`shaders/surface.ts`): land mask, toon bands, halftone, ink rim, grain. `geo.ts` fetches Natural Earth 50 m TopoJSON from `world-atlas` (as `?url` assets), rasterises a 4096×2048 land mask with d3-geo, and builds coastline/border/graticule segments drawn by `GeoLines` as screen-width `LineSegments2`. `lonLatToVector3` matches `SphereGeometry` UVs. `layers/PointsLayer` draws a constant-screen-size marker plus a true-scale footprint ring per event, pulses events under 15 minutes old, and shows a drei `<Html>` tooltip on hover. `CameraRig` wraps `OrbitControls` (no pan, zoom 1.15–4 radii), idle auto-rotation after 10 s, and `flyTo`. `prefers-reduced-motion` disables pulses, rotation and flight animation.
 

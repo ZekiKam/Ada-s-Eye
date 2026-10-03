@@ -11,10 +11,7 @@ const LATENCY_MS = 120;
  * Builds a `fetchEvents` that serves a constant list, filtered by the query's
  * time range the way a backend would. Stand-in until the Orval client exists.
  */
-export function exampleSource(
-	items: readonly ExampleEvent[],
-	{ ignoreTimeRange = false } = {},
-) {
+export function exampleSource(items: readonly ExampleEvent[]) {
 	const anchor = Math.floor(Date.now() / 1000);
 	const events: GlobeEvent[] = items.map(({ seconds_ago, ...rest }) => ({
 		...rest,
@@ -29,7 +26,6 @@ export function exampleSource(
 				reject(signal.reason);
 			});
 		});
-		if (ignoreTimeRange) return events;
 		const end = query.time_range_end ?? Math.floor(Date.now() / 1000);
 		const start = query.time_range_start ?? end - 86400;
 		return events.filter((e) => e.event_time >= start && e.event_time <= end);

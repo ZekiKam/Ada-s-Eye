@@ -4,7 +4,6 @@ import type { GlobeEvent } from "@/api/schema";
 import { usePrefersReducedMotion } from "@/lib/hooks";
 import { useGlobeStore } from "@/state/store";
 import { globeStyle } from "@/theme/globe-style";
-import type { ViewDefinition } from "@/views/types";
 import { CameraRig } from "./CameraRig";
 import { GeoLines } from "./GeoLines";
 import { GlobeSurface } from "./GlobeSurface";
@@ -25,12 +24,11 @@ function hasWebGL(): boolean {
 }
 
 interface GlobeCanvasProps {
-  view: ViewDefinition;
   /** Events to draw, already filtered to the visible categories. */
   events: readonly GlobeEvent[];
 }
 
-export function GlobeCanvas({ view, events }: GlobeCanvasProps) {
+export function GlobeCanvas({ events }: GlobeCanvasProps) {
   const [webgl] = useState(hasWebGL);
   const [atlas, setAtlas] = useState<Atlas | null>(null);
   const reducedMotion = usePrefersReducedMotion();
@@ -88,7 +86,6 @@ export function GlobeCanvas({ view, events }: GlobeCanvasProps) {
         </>
       )}
       <PointsLayer
-        view={view}
         events={events}
         style={style}
         reducedMotion={reducedMotion}

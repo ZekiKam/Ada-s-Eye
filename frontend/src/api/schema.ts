@@ -1,11 +1,11 @@
 /**
  * Hand-written stand-ins for the backend schema while it is still changing.
  *
- * Once a backend's openapi.json settles, `bun run sync` generates these types
- * (and the fetch functions) under `@/api/generated/<view>/`. At that point,
+ * Once the backend's openapi.json settles, `bun run sync` generates these
+ * types (and the fetch functions) under `@/api/generated/`. At that point,
  * re-export the generated types from here, or import them directly and
- * delete this file. Nothing outside `src/views/` constructs these objects, so
- * the swap is confined to the view folders.
+ * delete this file. Only `src/data/` constructs these objects, so the swap is
+ * confined there.
  */
 
 /** Request query. Both bounds are optional UNIX timestamps in seconds. */
@@ -25,7 +25,7 @@ export interface GlobeEvent {
 	latitude: number;
 	/** Footprint radius in metres, at least 1. Drawn at true scale. */
 	range: number;
-	/** Category key. Each view maps its known keys to a label and tone. */
+	/** Category key. `data/categories.ts` maps known keys to a label and tone. */
 	event_type: string;
 	/** UNIX timestamp in seconds, UTC. */
 	event_time: number;

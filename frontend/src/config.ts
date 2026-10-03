@@ -1,4 +1,4 @@
-/** How often the active view is re-fetched. One request per interval per open tab. */
+/** How often events are re-fetched. One request per interval per open tab. */
 export const POLL_INTERVAL_MS =
 	Number(import.meta.env.VITE_POLL_INTERVAL_MS) || 10_000;
 

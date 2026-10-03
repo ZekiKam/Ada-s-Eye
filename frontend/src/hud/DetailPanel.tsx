@@ -1,5 +1,6 @@
 import { Crosshair, X } from "lucide-react";
 import type { GlobeEvent } from "@/api/schema";
+import { categoryOf } from "@/data/categories";
 import {
 	formatAge,
 	formatCoordinates,
@@ -9,29 +10,17 @@ import {
 import { useNow } from "@/lib/hooks";
 import { useGlobeStore } from "@/state/store";
 import { toneVar } from "@/theme/tones";
-import { categoryOf } from "@/views/registry";
-import type { ViewDefinition } from "@/views/types";
 
 /** Facts of the selected event. Closes with the button or Escape. */
-export function DetailPanel({
-	view,
-	event,
-}: {
-	view: ViewDefinition;
-	event: GlobeEvent;
-}) {
+export function DetailPanel({ event }: { event: GlobeEvent }) {
 	const now = useNow();
 	const select = useGlobeStore((s) => s.select);
 	const flyTo = useGlobeStore((s) => s.flyTo);
-	const category = categoryOf(view, event.event_type);
+	const category = categoryOf(event.event_type);
 
 	const facts: [string, string][] = [
-		...(view.hasTimeWindow
-			? ([
-					["Time", formatUtc(event.event_time)],
-					["Age", formatAge(event.event_time, now)],
-				] as [string, string][])
-			: []),
+		["Time", formatUtc(event.event_time)],
+		["Age", formatAge(event.event_time, now)],
 		["Position", formatCoordinates(event.longitude, event.latitude)],
 		["Footprint radius", formatDistance(event.range)],
 		["Type key", event.event_type],

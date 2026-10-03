@@ -1,8 +1,8 @@
 /**
  * Orval mutator: every generated client call goes through `customFetch`.
  *
- * URLs are relative (`/api/<view>/...`), so requests stay same-origin and the
- * Worker proxies them to the right backend. Times out after 9 seconds, one
+ * URLs are relative (`/api/...`), so requests stay same-origin and the
+ * Worker proxies them to the backend. Times out after 9 seconds, one
  * more than the Worker allows for the upstream.
  */
 

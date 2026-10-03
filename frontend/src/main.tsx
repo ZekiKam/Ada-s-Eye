@@ -7,7 +7,7 @@ import App from "./App.tsx";
 const queryClient = new QueryClient({
 	defaultOptions: {
 		queries: {
-			// Keep each view's last data for the session, so switching back is instant.
+			// Keep each window's last data for the session, so switching back is instant.
 			gcTime: 60 * 60 * 1000,
 		},
 	},

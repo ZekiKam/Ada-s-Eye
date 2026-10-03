@@ -1,11 +1,11 @@
-import type { ExampleEvent } from "../example";
+import type { ExampleEvent } from "./example";
 
 const M = 60;
 const H = 3600;
 const D = 86400;
 
 /** Example anomalies: plate boundaries, English river gauges, large cities. */
-export const COMPSOC_EXAMPLE: readonly ExampleEvent[] = [
+export const EXAMPLE_EVENTS: readonly ExampleEvent[] = [
 	// Within the last hour. The first two pulse as new.
 	{
 		event_type: "earthquake",

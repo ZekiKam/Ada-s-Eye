@@ -11,17 +11,15 @@ import {
 } from "three";
 import type { GlobeEvent } from "@/api/schema";
 import { NEW_EVENT_AGE_S } from "@/config";
+import { type Category, categoryOf } from "@/data/categories";
 import { eventKey } from "@/data/events";
 import { Tooltip } from "@/hud/Tooltip";
 import { useGlobeStore } from "@/state/store";
 import type { GlobeStyle } from "@/theme/globe-style";
 import { toneColor } from "@/theme/tones";
-import { categoryOf } from "@/views/registry";
-import type { Category, ViewDefinition } from "@/views/types";
 import { ALTITUDE, footprintLoop, lonLatToVector3 } from "../geo";
 
 interface PointsLayerProps {
-	view: ViewDefinition;
 	events: readonly GlobeEvent[];
 	style: GlobeStyle;
 	reducedMotion: boolean;
@@ -29,7 +27,6 @@ interface PointsLayerProps {
 
 /** One marker and true-scale footprint per event, keyed by event identity. */
 export function PointsLayer({
-	view,
 	events,
 	style,
 	reducedMotion,
@@ -43,7 +40,7 @@ export function PointsLayer({
 						key={id}
 						id={id}
 						event={event}
-						category={categoryOf(view, event.event_type)}
+						category={categoryOf(event.event_type)}
 						style={style}
 						reducedMotion={reducedMotion}
 					/>
