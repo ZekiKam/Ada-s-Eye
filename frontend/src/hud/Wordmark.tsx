@@ -8,30 +8,28 @@ const LID = "origin-[16px_10px] animate-eye-open motion-reduce:animate-none";
 export function Wordmark() {
 	const clipId = useId();
 	return (
-		<div className="pointer-events-auto flex flex-col gap-1.5">
-			<h1 className="flex flex-col items-center font-display text-4xl leading-none tracking-wide uppercase">
-				<svg
-					aria-hidden
-					viewBox="0 0 32 20"
-					className="h-9 w-auto"
-					fill="none"
-					stroke="currentColor"
-					strokeWidth="1.6"
-				>
-					<defs>
-						{/* Opens with the lids, so the iris shows through as they part. */}
-						<clipPath id={clipId}>
-							<path d={EYE_OUTLINE} className={LID} />
-						</clipPath>
-					</defs>
-					<path d={EYE_OUTLINE} className={LID} />
-					<g clipPath={`url(#${clipId})`}>
-						<circle cx="16" cy="10" r="5" />
-						<circle cx="16" cy="10" r="1.8" fill="currentColor" />
-					</g>
-				</svg>
-				Ada's Eye
-			</h1>
-		</div>
+		<h1 className="pointer-events-auto flex flex-col items-center font-display text-4xl leading-none tracking-wide uppercase">
+			<svg
+				aria-hidden
+				viewBox="0 0 32 20"
+				className="h-9 w-auto"
+				fill="none"
+				stroke="currentColor"
+				strokeWidth="1.6"
+			>
+				<defs>
+					{/* Opens with the lids, so the iris shows through as they part. */}
+					<clipPath id={clipId}>
+						<path d={EYE_OUTLINE} className={LID} />
+					</clipPath>
+				</defs>
+				<path d={EYE_OUTLINE} className={LID} />
+				<g clipPath={`url(#${clipId})`}>
+					<circle cx="16" cy="10" r="5" />
+					<circle cx="16" cy="10" r="1.8" fill="currentColor" />
+				</g>
+			</svg>
+			Ada's Eye
+		</h1>
 	);
 }

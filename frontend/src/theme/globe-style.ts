@@ -178,7 +178,7 @@ const engraving: GlobeStyle = {
 	},
 };
 
-/** Flat colours, no halftone or grain. Also the low-power fallback. */
+/** Flat colours, no halftone or grain. */
 const plain: GlobeStyle = {
 	...engraving,
 	ocean: "#1e30b8",

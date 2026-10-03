@@ -56,8 +56,7 @@ export function GlobeCanvas({ events }: GlobeCanvasProps) {
 		return (
 			<div className="absolute inset-0 grid place-items-center p-8">
 				<p className="label-caps max-w-sm text-center text-muted-foreground">
-					This browser cannot draw the globe (WebGL is unavailable). The feed
-					and panels still work.
+					This browser cannot draw the globe (WebGL is unavailable).
 				</p>
 			</div>
 		);

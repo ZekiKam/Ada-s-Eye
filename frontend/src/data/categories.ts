@@ -7,8 +7,8 @@ export interface Category {
 	tone: Tone;
 }
 
-/** Known `event_type` values, in legend order. Unknown ones render neutral. */
-export const CATEGORIES: readonly Category[] = [
+/** Known `event_type` values. Unknown ones render neutral. */
+const CATEGORIES: readonly Category[] = [
 	{ key: "earthquake", label: "Earthquake", tone: "danger" },
 	{ key: "flood", label: "Flood", tone: "info" },
 	{ key: "air_quality", label: "Air quality", tone: "warning" },

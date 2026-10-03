@@ -179,22 +179,6 @@
 	background-blend-mode: overlay, normal, normal;
 }
 
-/* Category colour chip. */
-@utility swatch {
-	display: inline-block;
-	flex: none;
-	width: 10px;
-	height: 10px;
-	border-radius: 9999px;
-	box-shadow: 0 0 0 1.5px var(--ink);
-}
-
-@utility status-dot {
-	display: inline-block;
-	width: 6px;
-	height: 6px;
-}
-
 @layer base {
 	* {
 		@apply border-border outline-ring/50;
