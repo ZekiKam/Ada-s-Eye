@@ -6,12 +6,15 @@ import { LONG_PRESS_MS } from "@/config";
 const SLOP_PX = 10;
 
 /**
- * Calls `onLongPress` when a finger rests on the object for `LONG_PRESS_MS`.
- * Lifting, moving, a second finger, or the browser taking over the gesture
- * cancels it. Mouse and pen presses are ignored. Returns the pointer-down
- * handler for the object.
+ * Calls `onLongPress` with the pointer-down event when a finger rests on the
+ * object for `LONG_PRESS_MS`. Lifting, moving, a second finger, or the
+ * browser taking over the gesture cancels it. Mouse and pen presses are
+ * ignored. The tap the browser may send when the finger lifts is swallowed,
+ * so it doesn't also clear the selection. Returns the pointer-down handler.
  */
-export function useLongPress(onLongPress: () => void) {
+export function useLongPress(
+	onLongPress: (e: ThreeEvent<PointerEvent>) => void,
+) {
 	const cancel = useRef<(() => void) | null>(null);
 	const callback = useRef(onLongPress);
 	callback.current = onLongPress;
@@ -37,7 +40,8 @@ export function useLongPress(onLongPress: () => void) {
 		};
 		const timer = window.setTimeout(() => {
 			stop();
-			callback.current();
+			swallowNextClick();
+			callback.current(e);
 		}, LONG_PRESS_MS);
 
 		function stop() {
@@ -55,4 +59,18 @@ export function useLongPress(onLongPress: () => void) {
 		window.addEventListener("pointercancel", onEnd);
 		cancel.current = stop;
 	};
+}
+
+/** Stops the next click before R3F sees it, unless a new gesture starts first. */
+function swallowNextClick() {
+	const swallow = (c: MouseEvent) => {
+		c.stopPropagation();
+		remove();
+	};
+	const remove = () => {
+		window.removeEventListener("click", swallow, true);
+		window.removeEventListener("pointerdown", remove, true);
+	};
+	window.addEventListener("click", swallow, true);
+	window.addEventListener("pointerdown", remove, true);
 }

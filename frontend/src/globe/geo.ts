@@ -47,6 +47,18 @@ export function lonLatToVector3(
 		.multiplyScalar(radius);
 }
 
+/** The inverse of `lonLatToVector3`, for any point (normalised first). */
+export function vector3ToLonLat(point: Vector3): {
+	longitude: number;
+	latitude: number;
+} {
+	const { x, y, z } = point.clone().normalize();
+	return {
+		longitude: Math.atan2(-z, x) / DEG,
+		latitude: Math.asin(Math.max(-1, Math.min(1, y))) / DEG,
+	};
+}
+
 /** Flattens polylines into segment pairs for LineSegmentsGeometry. */
 export function linesToSegments(
 	lines: readonly (readonly number[])[][],

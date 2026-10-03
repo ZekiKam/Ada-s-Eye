@@ -5,20 +5,16 @@
  * OpenAPI spec version: 0.1.0
  */
 import {
-  useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
-  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
-  UseMutationOptions,
-  UseMutationResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
@@ -27,7 +23,7 @@ import type {
   Anomaly,
   GlobePoint,
   HTTPValidationError,
-  RequestAnomaly
+  RequestAnomalyParams
 } from './model';
 
 import { customFetch } from '../fetcher';
@@ -153,39 +149,32 @@ export function useGetAllPoints<TData = Awaited<ReturnType<typeof getAllPoints>>
 
 
 
-export const getRequestAnomalyUrl = () => {
+export const getRequestAnomalyUrl = (params: RequestAnomalyParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/request_anomaly`
+  return stringifiedParams.length > 0 ? `/api/request_anomaly?${stringifiedParams}` : `/api/request_anomaly`
 }
 
 /**
  * @summary Request Anomaly
  */
-export const requestAnomaly = async (requestAnomalyBody: RequestAnomaly, options?: Parameters<typeof customFetch>[1]): Promise<Anomaly> => {
+export const requestAnomaly = async (params: RequestAnomalyParams, options?: Parameters<typeof customFetch>[1]): Promise<Anomaly> => {
 
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return customFetch<Anomaly>(getRequestAnomalyUrl(),
+  return customFetch<Anomaly>(getRequestAnomalyUrl(params),
   {
     ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(requestAnomalyBody)
+    method: 'GET'
+
+
   }
 );}
 
@@ -193,51 +182,78 @@ return customFetch<Anomaly>(getRequestAnomalyUrl(),
 
 
 
-export const getRequestAnomalyMutationKey = () => ['requestAnomaly'] as const;
-
-export const getRequestAnomalyMutationOptions = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAnomaly>>, TError,RequestAnomalyMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof requestAnomaly>>, TError,RequestAnomalyMutationVariables, TContext> => {
-
-const mutationKey = getRequestAnomalyMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
+export const getRequestAnomalyQueryKey = (params?: RequestAnomalyParams,) => {
+    return [
+    `/api/request_anomaly`, ...(params ? [params] : [])
+    ] as const;
+    }
 
 
+export const getRequestAnomalyQueryOptions = <TData = Awaited<ReturnType<typeof requestAnomaly>>, TError = HTTPValidationError>(params: RequestAnomalyParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof requestAnomaly>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getRequestAnomalyQueryKey(params);
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestAnomaly>>, RequestAnomalyMutationVariables> = (props) => {
-          const {data} = props ?? {};
 
-          return  requestAnomaly(data,requestOptions)
-        }
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof requestAnomaly>>> = ({ signal }) => requestAnomaly(params, { signal, ...requestOptions });
 
 
 
 
 
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof requestAnomaly>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
 
-  return  { mutationFn, ...mutationOptions }}
+export type RequestAnomalyQueryResult = NonNullable<Awaited<ReturnType<typeof requestAnomaly>>>
+export type RequestAnomalyQueryError = HTTPValidationError
 
-    export type RequestAnomalyMutationResult = NonNullable<Awaited<ReturnType<typeof requestAnomaly>>>
-    export type RequestAnomalyMutationBody = RequestAnomaly
-    export type RequestAnomalyMutationError = HTTPValidationError
-    export type RequestAnomalyMutationVariables = {data: RequestAnomaly}
 
-    /**
+export function useRequestAnomaly<TData = Awaited<ReturnType<typeof requestAnomaly>>, TError = HTTPValidationError>(
+ params: RequestAnomalyParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof requestAnomaly>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof requestAnomaly>>,
+          TError,
+          Awaited<ReturnType<typeof requestAnomaly>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useRequestAnomaly<TData = Awaited<ReturnType<typeof requestAnomaly>>, TError = HTTPValidationError>(
+ params: RequestAnomalyParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof requestAnomaly>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof requestAnomaly>>,
+          TError,
+          Awaited<ReturnType<typeof requestAnomaly>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useRequestAnomaly<TData = Awaited<ReturnType<typeof requestAnomaly>>, TError = HTTPValidationError>(
+ params: RequestAnomalyParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof requestAnomaly>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
  * @summary Request Anomaly
  */
-export const useRequestAnomaly = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAnomaly>>, TError,RequestAnomalyMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof requestAnomaly>>,
-        TError,
-        RequestAnomalyMutationVariables,
-        TContext
-      > => {
-      return useMutation(getRequestAnomalyMutationOptions(options), queryClient);
-    }
+
+export function useRequestAnomaly<TData = Awaited<ReturnType<typeof requestAnomaly>>, TError = HTTPValidationError>(
+ params: RequestAnomalyParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof requestAnomaly>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getRequestAnomalyQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 

@@ -1,6 +1,18 @@
 import logging
+from contextlib import asynccontextmanager
+from datetime import datetime, time, timezone
+from pathlib import Path
+from typing import Annotated
 
-from fastapi import FastAPI, HTTPException
+from anomalies import (
+    Detection,
+    Wildfire,
+    find_anomalies,
+    haversine_km,
+    load_detections,
+    load_wildfires,
+)
+from fastapi import FastAPI, Query
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from schema import *
 
@@ -15,9 +27,53 @@ logging.basicConfig(
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env")
 
+    # Folder holding the two CSV files.
+    data_dir: Path = Path(__file__).resolve().parent.parent / "data"
+    wildfires_file: str = "wildfires.csv"
+    detections_file: str = "satellite_detections.csv"
+    # A detection at or above this brightness (kelvin) can be an anomaly.
+    brightness_threshold: float = 340.0
+    # A wildfire explains a detection within its radius plus this distance...
+    match_distance_km: float = 10.0
+    # ...and within this many days either side.
+    match_days: int = 1
+    # How far from a queried spot request_anomaly looks for anomalies.
+    query_radius_km: float = 50.0
+
 
 settings = Settings()
-app = FastAPI()
+
+wildfires: list[Wildfire] = []
+anomalies: list[Detection] = []
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global wildfires, anomalies
+    wildfires = load_wildfires(settings.data_dir / settings.wildfires_file)
+    detections = load_detections(settings.data_dir / settings.detections_file)
+    anomalies = find_anomalies(
+        wildfires,
+        detections,
+        brightness_threshold=settings.brightness_threshold,
+        match_distance_km=settings.match_distance_km,
+        match_days=settings.match_days,
+    )
+    logger.info(
+        "Loaded %d wildfires and %d detections from %s; %d anomalies",
+        len(wildfires),
+        len(detections),
+        settings.data_dir,
+        len(anomalies),
+    )
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+def _iso(dt: datetime) -> str:
+    return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 @app.get(
@@ -26,15 +82,62 @@ app = FastAPI()
     response_model=list[GlobePoint],
 )
 async def get_all_points():
-    # TODO: past wildfires from real-world data.
-    return []
+    return [
+        GlobePoint(
+            longitude=f.longitude,
+            latitude=f.latitude,
+            event_time=_iso(datetime.combine(f.day, time(tzinfo=timezone.utc))),
+            radius=f.radius_m,
+        )
+        for f in wildfires
+    ]
 
 
-@app.post(
+@app.get(
+    "/api/get_anomalies",
+    operation_id="getAnomalies",
+    response_model=list[DetectedAnomaly],
+)
+async def get_anomalies():
+    return [
+        DetectedAnomaly(
+            longitude=a.longitude,
+            latitude=a.latitude,
+            event_time=_iso(a.detected_at),
+            brightness=a.brightness,
+            confidence=a.confidence,
+            radius=a.radius_m,
+        )
+        for a in anomalies
+    ]
+
+
+@app.get(
     "/api/request_anomaly",
     operation_id="requestAnomaly",
     response_model=Anomaly,
 )
-async def request_anomaly(request: RequestAnomaly):
-    # TODO: the anomaly query about one point.
-    raise HTTPException(status_code=501, detail="Anomaly queries are not set up yet")
+async def request_anomaly(request: Annotated[RequestAnomaly, Query()]):
+    """The most confident anomaly near this spot in this year, or confidence 0
+    over the whole search radius if there is none."""
+    nearby = [
+        a
+        for a in anomalies
+        if a.detected_at.year == request.year
+        and haversine_km(request.longitude, request.latitude, a.longitude, a.latitude)
+        <= settings.query_radius_km
+    ]
+    if not nearby:
+        return Anomaly(
+            longitude=request.longitude,
+            latitude=request.latitude,
+            confidence=0.0,
+            radius=settings.query_radius_km * 1000,
+        )
+    best = max(nearby, key=lambda a: (a.confidence, a.brightness))
+    return Anomaly(
+        longitude=best.longitude,
+        latitude=best.latitude,
+        confidence=best.confidence,
+        radius=best.radius_m,
+    )

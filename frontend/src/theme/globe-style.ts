@@ -70,15 +70,13 @@ export interface LineStyle {
 export interface MarkerStyle {
 	/** Marker radius in CSS pixels, kept constant at every zoom. */
 	sizePx: number;
-	/** Multiplier while hovered or selected. */
+	/** Multiplier while hovered, and for the selected spot. */
 	emphasis: number;
 	/** Ink outline radius as a multiple of the marker radius. */
 	outline: number;
-	/** Pointer hit area as a multiple of the marker radius. */
+	/** Hover hit area as a multiple of the marker radius. */
 	hitArea: number;
-	/** Hit area when the primary pointer is a finger. */
-	touchHitArea: number;
-	/** Selection ring in the category tone, over a wider ink halo, as multiples of the marker radius. */
+	/** Selected-spot ring, over a wider ink halo, as multiples of the marker radius. */
 	selectionRing: readonly [inner: number, outer: number];
 	selectionHalo: readonly [inner: number, outer: number];
 	/** True-scale footprint ring. */
@@ -90,6 +88,8 @@ export interface MarkerStyle {
 	pulseReach: number;
 	/** Fade-in time for markers that appear between polls. */
 	appearMs: number;
+	/** Marker and ring for the selected spot. */
+	spotColor: string;
 }
 
 export interface LabelStyle {
@@ -145,7 +145,6 @@ const engraving: GlobeStyle = {
 		emphasis: 1.45,
 		outline: 1.45,
 		hitArea: 2.6,
-		touchHitArea: 4.4,
 		selectionRing: [2.15, 2.6],
 		selectionHalo: [1.9, 2.85],
 		footprintWidth: 1.4,
@@ -153,6 +152,7 @@ const engraving: GlobeStyle = {
 		pulsePeriod: 1.6,
 		pulseReach: 5,
 		appearMs: 220,
+		spotColor: BONE,
 	},
 	labels: {
 		font: labelFont,

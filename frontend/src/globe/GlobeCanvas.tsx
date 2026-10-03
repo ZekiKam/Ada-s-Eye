@@ -25,11 +25,13 @@ function hasWebGL(): boolean {
 }
 
 interface GlobeCanvasProps {
-	/** Events to draw, already filtered to the visible categories. */
+	/** Events to draw: the selected year's. */
 	events: readonly GlobePoint[];
+	/** A spot on the globe (not a wildfire) was picked. */
+	onSelectSpot(longitude: number, latitude: number): void;
 }
 
-export function GlobeCanvas({ events }: GlobeCanvasProps) {
+export function GlobeCanvas({ events, onSelectSpot }: GlobeCanvasProps) {
 	const [webgl] = useState(hasWebGL);
 	const [atlas, setAtlas] = useState<Atlas | null>(null);
 	const reducedMotion = usePrefersReducedMotion();
@@ -81,6 +83,7 @@ export function GlobeCanvas({ events }: GlobeCanvasProps) {
 				landMask={atlas?.landMask ?? null}
 				countryMap={countryMap}
 				onClickEmpty={() => select(null)}
+				onSelectSpot={onSelectSpot}
 			/>
 			{atlas && (
 				<>

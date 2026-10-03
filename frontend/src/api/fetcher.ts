@@ -47,8 +47,17 @@ export async function customFetch<T>(
 	}
 
 	if (response.status === 204) return undefined as T;
+	// Every endpoint returns JSON. Anything else (say, an HTML page from a
+	// misconfigured BACKEND_URL) would otherwise reach the app as a string.
 	const type = response.headers.get("content-type") ?? "";
-	return (type.includes("json") ? response.json() : response.text()) as T;
+	if (!type.includes("json")) {
+		throw new ApiError(
+			response.status,
+			url,
+			`Expected JSON from the backend, got ${type || "no content type"}`,
+		);
+	}
+	return response.json() as Promise<T>;
 }
 
 export default customFetch;

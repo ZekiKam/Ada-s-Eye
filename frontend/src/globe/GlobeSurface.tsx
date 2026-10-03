@@ -14,7 +14,9 @@ import {
 	Vector3,
 } from "three";
 import type { GlobeStyle } from "@/theme/globe-style";
+import { vector3ToLonLat } from "./geo";
 import { surfaceFragmentShader, surfaceVertexShader } from "./shaders/surface";
+import { useLongPress } from "./useLongPress";
 import { useReveal } from "./useReveal";
 
 /** One-pixel placeholder until the atlas arrives. Black mask is all ocean. */
@@ -42,6 +44,8 @@ interface GlobeSurfaceProps {
 	landMask: HTMLCanvasElement | null;
 	countryMap: HTMLCanvasElement | null;
 	onClickEmpty(): void;
+	/** Double-click, or a long press on touch, picks the spot under the pointer. */
+	onSelectSpot(longitude: number, latitude: number): void;
 }
 
 export function GlobeSurface({
@@ -49,6 +53,7 @@ export function GlobeSurface({
 	landMask,
 	countryMap,
 	onClickEmpty,
+	onSelectSpot,
 }: GlobeSurfaceProps) {
 	const pixelRatio = useThree((s) => s.viewport.dpr);
 
@@ -112,16 +117,33 @@ export function GlobeSurface({
 
 	useEffect(() => () => material.dispose(), [material]);
 
+	const selectAt = (e: ThreeEvent<MouseEvent | PointerEvent>) => {
+		const { longitude, latitude } = vector3ToLonLat(e.point);
+		onSelectSpot(longitude, latitude);
+	};
+	// Every handler stops propagation so markers on the far side of the globe
+	// never receive the event.
 	const handleClick = (e: ThreeEvent<MouseEvent>) => {
 		e.stopPropagation();
 		// A drag that ends on the globe is a rotation, not a click.
 		if (e.delta <= 4) onClickEmpty();
+	};
+	const handleDoubleClick = (e: ThreeEvent<MouseEvent>) => {
+		e.stopPropagation();
+		if (e.delta <= 4) selectAt(e);
+	};
+	const longPress = useLongPress(selectAt);
+	const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
+		e.stopPropagation();
+		longPress(e);
 	};
 
 	return (
 		<mesh
 			material={material}
 			onClick={handleClick}
+			onDoubleClick={handleDoubleClick}
+			onPointerDown={handlePointerDown}
 			// Stops hover reaching markers on the far side of the globe.
 			onPointerMove={(e) => e.stopPropagation()}
 		>

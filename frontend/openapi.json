@@ -28,19 +28,38 @@
       }
     },
     "/api/request_anomaly": {
-      "post": {
+      "get": {
         "summary": "Request Anomaly",
         "operationId": "requestAnomaly",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RequestAnomaly"
-              }
+        "parameters": [
+          {
+            "name": "longitude",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "title": "Longitude"
             }
           },
-          "required": true
-        },
+          {
+            "name": "latitude",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "title": "Latitude"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Year"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -136,29 +155,6 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
-      },
-      "RequestAnomaly": {
-        "properties": {
-          "longitude": {
-            "type": "number",
-            "title": "Longitude"
-          },
-          "latitude": {
-            "type": "number",
-            "title": "Latitude"
-          },
-          "event_time": {
-            "type": "string",
-            "title": "Event Time"
-          }
-        },
-        "type": "object",
-        "required": [
-          "longitude",
-          "latitude",
-          "event_time"
-        ],
-        "title": "RequestAnomaly"
       },
       "ValidationError": {
         "properties": {

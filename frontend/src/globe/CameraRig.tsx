@@ -34,7 +34,7 @@ const easeInOutCubic = (t: number) =>
 
 /**
  * Orbit controls (rotate and zoom, no pan), idle auto-rotation, and
- * `flyTo` requests from the store.
+ * flights to each new selection from the store.
  */
 export function CameraRig({ reducedMotion }: { reducedMotion: boolean }) {
 	const controls = useRef<ComponentRef<typeof OrbitControls>>(null);
@@ -114,7 +114,7 @@ export function CameraRig({ reducedMotion }: { reducedMotion: boolean }) {
 			Math.max(1, size.height / size.width);
 
 		const idle = now - lastInteraction.current > IDLE_ROTATE_AFTER_MS;
-		const hasSelection = useGlobeStore.getState().selectedKey !== null;
+		const hasSelection = useGlobeStore.getState().selected !== null;
 		c.autoRotate = !reducedMotion && !hasSelection && !flight.current && idle;
 	});
 

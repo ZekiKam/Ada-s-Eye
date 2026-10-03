@@ -12,11 +12,6 @@ const DATE = new Intl.DateTimeFormat("en-GB", {
 	timeZone: "UTC",
 });
 
-/** "11 Mar 2011", in UTC. */
-export function formatDate(unixSeconds: number): string {
-	return DATE.format(unixSeconds * 1000);
-}
-
 /** "38.30°N 142.37°E". */
 export function formatLonLat(longitude: number, latitude: number): string {
 	const lat = `${Math.abs(latitude).toFixed(2)}°${latitude < 0 ? "S" : "N"}`;

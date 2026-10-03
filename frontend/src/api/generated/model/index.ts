@@ -8,6 +8,6 @@
 export * from './anomaly';
 export * from './globePoint';
 export * from './hTTPValidationError';
-export * from './requestAnomaly';
+export * from './requestAnomalyParams';
 export * from './validationError';
 export * from './validationErrorCtx';

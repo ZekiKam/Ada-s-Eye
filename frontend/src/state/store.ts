@@ -1,6 +1,8 @@
 import { create } from "zustand";
-import type { GlobePoint } from "@/api/generated/model";
-import { eventKey } from "@/data/events";
+import type { RequestAnomalyParams } from "@/api/generated/model";
+
+/** A spot picked on the globe, and the timeline year to query it for. */
+export type Selection = RequestAnomalyParams;
 
 interface Flight {
 	longitude: number;
@@ -10,29 +12,32 @@ interface Flight {
 }
 
 interface GlobeState {
-	selected: GlobePoint | null;
-	/** `eventKey(selected)`, so markers can compare cheaply. */
-	selectedKey: string | null;
+	selected: Selection | null;
 	hoveredKey: string | null;
 	flight: Flight | null;
-	select(point: GlobePoint | null): void;
+	/** Selecting also flies the camera there. */
+	select(selection: Selection | null): void;
 	hover(key: string | null): void;
-	flyTo(longitude: number, latitude: number): void;
 }
 
 export const useGlobeStore = create<GlobeState>()((set) => ({
 	selected: null,
-	selectedKey: null,
 	hoveredKey: null,
 	flight: null,
 
 	select: (selected) =>
-		set({ selected, selectedKey: selected ? eventKey(selected) : null }),
+		set((s) =>
+			selected
+				? {
+						selected,
+						flight: {
+							longitude: selected.longitude,
+							latitude: selected.latitude,
+							id: (s.flight?.id ?? 0) + 1,
+						},
+					}
+				: { selected },
+		),
 
 	hover: (hoveredKey) => set({ hoveredKey }),
-
-	flyTo: (longitude, latitude) =>
-		set((s) => ({
-			flight: { longitude, latitude, id: (s.flight?.id ?? 0) + 1 },
-		})),
 }));
