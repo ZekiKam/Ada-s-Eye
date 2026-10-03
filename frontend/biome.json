@@ -12,7 +12,9 @@
 			"!!**/.wrangler",
 			"!!**/.tanstack",
 			"!src/routeTree.gen.ts",
-			"!worker-configuration.d.ts"
+			"!worker-configuration.d.ts",
+			"!src/api/generated",
+			"!src/fixtures/generated"
 		]
 	},
 	"formatter": {
@@ -25,6 +27,18 @@
 			"preset": "recommended"
 		}
 	},
+	"overrides": [
+		{
+			"includes": ["src/globe/**"],
+			"linter": {
+				"rules": {
+					"a11y": {
+						"noStaticElementInteractions": "off"
+					}
+				}
+			}
+		}
+	],
 	"javascript": {
 		"formatter": {
 			"quoteStyle": "double"

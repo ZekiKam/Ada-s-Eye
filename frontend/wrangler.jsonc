@@ -15,11 +15,13 @@
 		"enabled": true
 	},
 	"upload_source_maps": true,
-	// Public hostname of the Cloudflare Tunnel in front of the backend PC.
-	// Overridden in local dev by .dev.vars. BACKEND_SECRET is set with
-	// `wrangler secret put BACKEND_SECRET`.
+	// Public hostnames of the Cloudflare Tunnel, one per backend. The Worker
+	// routes /api/<view>/* to the matching URL. Overridden in local dev by
+	// .dev.vars. BACKEND_SECRET is set with `wrangler secret put BACKEND_SECRET`.
 	"vars": {
-		"BACKEND_URL": "https://api.YOUR-DOMAIN.com"
+		"BACKEND_COMPSOC_URL": "https://compsoc-api.YOUR-DOMAIN.com",
+		"BACKEND_OPTIVER_URL": "https://optiver-api.YOUR-DOMAIN.com",
+		"BACKEND_GRESEARCH_URL": "https://gresearch-api.YOUR-DOMAIN.com"
 	}
 	/**
 	 * Smart Placement

@@ -1,25 +1,22 @@
 import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
 export const Route = createRootRoute({
-	component: RootLayout,
+	component: Outlet,
 	notFoundComponent: NotFound,
 });
 
-function RootLayout() {
-	return (
-		<>
-			<Outlet />
-			<TanStackRouterDevtools />
-		</>
-	);
-}
-
 function NotFound() {
 	return (
-		<div>
-			<h1>404: Page not found</h1>
-			<Link to="/">Go home</Link>
-		</div>
+		<main className="grid h-dvh place-items-center">
+			<div className="flex flex-col items-center gap-4">
+				<h1 className="font-display text-6xl uppercase">404</h1>
+				<Link
+					to="/"
+					className="focus-ring label-caps border border-border px-3 py-2"
+				>
+					Back to the globe
+				</Link>
+			</div>
+		</main>
 	);
 }
