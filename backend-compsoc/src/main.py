@@ -4,7 +4,7 @@ from datetime import datetime, time, timezone
 from pathlib import Path
 from typing import Annotated
 
-from anomalies import find_anomaly
+from anomalies import FoundAnomaly, find_anomaly
 from datasets import (
     Detection,
     Wildfire,
@@ -44,6 +44,8 @@ wildfires: list[Wildfire] = []
 detections: list[Detection] = []
 dryness = Dryness({})
 leaderboard = Leaderboard()
+# Every anomaly found so far, oldest find first. In memory only.
+found_anomalies: list[FoundAnomaly] = []
 
 
 @asynccontextmanager
@@ -95,7 +97,8 @@ async def request_anomaly(request: Annotated[RequestAnomaly, Query()]):
     found on the fly: its middle, radius, intensity and distance. With none,
     the queried spot and the search radius at confidence 0. An anomaly found
     for the first time that is among the largest goes on the leaderboard, and
-    `claim` holds the token to name it."""
+    `claim` holds the token to name it. Each anomaly can be found only once:
+    after that, queries skip it."""
     found = find_anomaly(
         request.longitude,
         request.latitude,
@@ -104,6 +107,7 @@ async def request_anomaly(request: Annotated[RequestAnomaly, Query()]):
         fires=wildfires,
         detections=detections,
         dryness=dryness,
+        found=found_anomalies,
     )
     if found is None:
         return Anomaly(
@@ -114,6 +118,7 @@ async def request_anomaly(request: Annotated[RequestAnomaly, Query()]):
             radius=settings.query_radius_km * 1000,
             distance=0.0,
         )
+    found_anomalies.append(found)
     claim = None
     if entry := leaderboard.submit(found):
         claim = LeaderboardClaim(
@@ -133,6 +138,27 @@ async def request_anomaly(request: Annotated[RequestAnomaly, Query()]):
     )
 
 
+@app.get(
+    "/api/found_anomalies",
+    operation_id="getFoundAnomalies",
+    response_model=list[FoundAnomalyPoint],
+)
+async def get_found_anomalies():
+    """Every anomaly anyone has found, oldest find first. Kept in memory, so
+    it empties when the server restarts."""
+    return [
+        FoundAnomalyPoint(
+            longitude=a.longitude,
+            latitude=a.latitude,
+            event_time=_iso(a.start),
+            radius=a.radius_km * 1000,
+            intensity=a.intensity,
+            confidence=a.confidence,
+        )
+        for a in found_anomalies
+    ]
+
+
 def _leaderboard_entry(entry: Entry) -> LeaderboardEntry:
     a = entry.anomaly
     return LeaderboardEntry(
@@ -143,7 +169,7 @@ def _leaderboard_entry(entry: Entry) -> LeaderboardEntry:
         latitude=a.latitude,
         event_time=_iso(a.start),
         radius=a.radius_km * 1000,
-        detections=a.detections,
+        intensity=a.intensity,
         confidence=a.confidence,
     )
 

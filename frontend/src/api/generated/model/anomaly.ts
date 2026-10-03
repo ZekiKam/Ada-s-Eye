@@ -14,6 +14,7 @@ export interface Anomaly {
   longitude: number;
   latitude: number;
   confidence: number;
+  intensity: number;
   radius: number;
   distance: number;
   claim?: LeaderboardClaim | null;

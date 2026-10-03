@@ -38,6 +38,17 @@ class Anomaly(BaseModel):
     claim: LeaderboardClaim | None = None
 
 
+class FoundAnomalyPoint(BaseModel):
+    """An anomaly someone has found."""
+
+    longitude: float
+    latitude: float
+    event_time: str  # ISO 8601, UTC: its first detection
+    radius: float  # metres
+    intensity: float  # brightness, kelvin
+    confidence: float  # 0 to 1
+
+
 class LeaderboardEntry(BaseModel):
     """One of the largest anomalies found so far."""
 
@@ -48,7 +59,7 @@ class LeaderboardEntry(BaseModel):
     latitude: float
     event_time: str  # ISO 8601, UTC: its first detection
     radius: float  # metres
-    detections: int
+    intensity: float  # brightness, kelvin
     confidence: float  # 0 to 1
 
 

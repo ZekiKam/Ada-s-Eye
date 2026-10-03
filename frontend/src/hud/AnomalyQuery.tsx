@@ -1,7 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Radar, Trophy } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
-import { getGetLeaderboardQueryKey, useRequestAnomaly } from "@/api/generated";
+import {
+	getGetFoundAnomaliesQueryKey,
+	getGetLeaderboardQueryKey,
+	useRequestAnomaly,
+} from "@/api/generated";
 import type { Anomaly, LeaderboardClaim } from "@/api/generated/model";
 import { ANOMALY } from "@/data/events";
 import { ClaimName } from "@/hud/Leaderboard";
@@ -35,6 +39,15 @@ export function AnomalyQuery({ selection }: { selection: Selection }) {
 	const claim = useGlobeStore((s) => s.claim);
 	const queryClient = useQueryClient();
 	const [placed, setPlaced] = useState<LeaderboardClaim | null>(null);
+	// A find is shown to everyone, so show it here now rather than at the next poll.
+	const anomaly = query.data;
+	useEffect(() => {
+		if (!anomaly || anomaly.confidence === 0) return;
+		void queryClient.invalidateQueries({
+			queryKey: getGetFoundAnomaliesQueryKey(),
+		});
+	}, [anomaly, queryClient]);
+
 	const found = query.data?.claim;
 	useEffect(() => {
 		if (!found) return;

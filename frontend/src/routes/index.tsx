@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import type { LeaderboardEntry } from "@/api/generated/model";
 import { FIRST_YEAR, LAST_YEAR } from "@/config";
 import { useEvents } from "@/data/useEvents";
+import { useFoundAnomalies } from "@/data/useFoundAnomalies";
 import { GlobeCanvas } from "@/globe/GlobeCanvas";
 import { Leaderboard } from "@/hud/Leaderboard";
 import { Timeline } from "@/hud/Timeline";
@@ -52,6 +53,7 @@ function HomePage() {
 	const year = search.year ?? LAST_YEAR;
 
 	const events = useEvents(year);
+	const anomalies = useFoundAnomalies(year);
 	const select = useGlobeStore((s) => s.select);
 
 	// Four decimals is about 11 m, finer than any click can aim.
@@ -105,7 +107,11 @@ function HomePage() {
 					!settled && "pointer-events-none opacity-0",
 				)}
 			>
-				<GlobeCanvas events={events} onSelectSpot={selectSpot} />
+				<GlobeCanvas
+					events={events}
+					anomalies={anomalies}
+					onSelectSpot={selectSpot}
+				/>
 			</div>
 
 			<div className="pointer-events-none absolute inset-0">

@@ -1,6 +1,6 @@
 import { Canvas } from "@react-three/fiber";
 import { useEffect, useMemo, useState } from "react";
-import type { GlobePoint } from "@/api/generated/model";
+import type { FoundAnomalyPoint, GlobePoint } from "@/api/generated/model";
 import { usePrefersReducedMotion } from "@/lib/hooks";
 import { useGlobeStore } from "@/state/store";
 import { globeStyle } from "@/theme/globe-style";
@@ -27,11 +27,17 @@ function hasWebGL(): boolean {
 interface GlobeCanvasProps {
 	/** Events to draw: the selected year's. */
 	events: readonly GlobePoint[];
+	/** Anomalies anyone has found: the selected year's. */
+	anomalies: readonly FoundAnomalyPoint[];
 	/** A spot on the globe (not a wildfire) was picked. */
 	onSelectSpot(longitude: number, latitude: number): void;
 }
 
-export function GlobeCanvas({ events, onSelectSpot }: GlobeCanvasProps) {
+export function GlobeCanvas({
+	events,
+	anomalies,
+	onSelectSpot,
+}: GlobeCanvasProps) {
 	const [webgl] = useState(hasWebGL);
 	const [atlas, setAtlas] = useState<Atlas | null>(null);
 	const reducedMotion = usePrefersReducedMotion();
@@ -111,6 +117,7 @@ export function GlobeCanvas({ events, onSelectSpot }: GlobeCanvasProps) {
 			)}
 			<PointsLayer
 				events={events}
+				anomalies={anomalies}
 				style={style}
 				reducedMotion={reducedMotion}
 			/>

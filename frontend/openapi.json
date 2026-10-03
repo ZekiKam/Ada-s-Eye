@@ -27,32 +27,10 @@
         }
       }
     },
-    "/api/get_anomalies": {
-      "get": {
-        "summary": "Get Anomalies",
-        "operationId": "getAnomalies",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/DetectedAnomaly"
-                  },
-                  "type": "array",
-                  "title": "Response Getanomalies"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/request_anomaly": {
       "get": {
         "summary": "Request Anomaly",
-        "description": "The largest anomaly (a group of anomalous detections, see grouping.py)\nthat started in that year with its middle within the search radius of the\nqueried spot: its middle, radius and distance. With none, the queried spot\nand the search radius at confidence 0. An anomaly found for the first time\nthat is among the largest goes on the leaderboard, and `claim` holds the\ntoken to name it.",
+        "description": "The anomaly within the search radius of the queried spot in that year,\nfound on the fly: its middle, radius, intensity and distance. With none,\nthe queried spot and the search radius at confidence 0. An anomaly found\nfor the first time that is among the largest goes on the leaderboard, and\n`claim` holds the token to name it. Each anomaly can be found only once:\nafter that, queries skip it.",
         "operationId": "requestAnomaly",
         "parameters": [
           {
@@ -100,6 +78,29 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/found_anomalies": {
+      "get": {
+        "summary": "Get Found Anomalies",
+        "description": "Every anomaly anyone has found, oldest find first. Kept in memory, so\nit empties when the server restarts.",
+        "operationId": "getFoundAnomalies",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FoundAnomalyPoint"
+                  },
+                  "type": "array",
+                  "title": "Response Getfoundanomalies"
                 }
               }
             }
@@ -197,6 +198,10 @@
             "type": "number",
             "title": "Confidence"
           },
+          "intensity": {
+            "type": "number",
+            "title": "Intensity"
+          },
           "radius": {
             "type": "number",
             "title": "Radius"
@@ -221,13 +226,14 @@
           "longitude",
           "latitude",
           "confidence",
+          "intensity",
           "radius",
           "distance"
         ],
         "title": "Anomaly",
         "description": "The largest anomaly near a queried spot: its middle and radius. With\nnone, the queried spot and the radius searched, at confidence 0."
       },
-      "DetectedAnomaly": {
+      "FoundAnomalyPoint": {
         "properties": {
           "longitude": {
             "type": "number",
@@ -241,44 +247,17 @@
             "type": "string",
             "title": "Event Time"
           },
-          "brightness": {
-            "type": "number",
-            "title": "Brightness"
-          },
-          "frp": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Frp"
-          },
-          "confidence": {
-            "type": "number",
-            "title": "Confidence"
-          },
-          "satellite_confidence": {
-            "type": "number",
-            "title": "Satellite Confidence"
-          },
           "radius": {
             "type": "number",
             "title": "Radius"
           },
-          "reasons": {
-            "items": {
-              "type": "string",
-              "enum": [
-                "hot",
-                "spreading",
-                "intense"
-              ]
-            },
-            "type": "array",
-            "title": "Reasons"
+          "intensity": {
+            "type": "number",
+            "title": "Intensity"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
           }
         },
         "type": "object",
@@ -286,15 +265,12 @@
           "longitude",
           "latitude",
           "event_time",
-          "brightness",
-          "frp",
-          "confidence",
-          "satellite_confidence",
           "radius",
-          "reasons"
+          "intensity",
+          "confidence"
         ],
-        "title": "DetectedAnomaly",
-        "description": "A satellite detection that is hot with no recorded wildfire nearby, just\nbeyond a wildfire in a dry place, or far more intense than normal."
+        "title": "FoundAnomalyPoint",
+        "description": "An anomaly someone has found."
       },
       "GlobePoint": {
         "properties": {
@@ -398,9 +374,9 @@
             "type": "number",
             "title": "Radius"
           },
-          "detections": {
-            "type": "integer",
-            "title": "Detections"
+          "intensity": {
+            "type": "number",
+            "title": "Intensity"
           },
           "confidence": {
             "type": "number",
@@ -416,7 +392,7 @@
           "latitude",
           "event_time",
           "radius",
-          "detections",
+          "intensity",
           "confidence"
         ],
         "title": "LeaderboardEntry",

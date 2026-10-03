@@ -13,7 +13,11 @@ import {
 	Vector3,
 } from "three";
 import { useRequestAnomaly } from "@/api/generated";
-import type { Anomaly, GlobePoint } from "@/api/generated/model";
+import type {
+	Anomaly,
+	FoundAnomalyPoint,
+	GlobePoint,
+} from "@/api/generated/model";
 import { EARTH_RADIUS_M, NEW_EVENT_AGE_S } from "@/config";
 import { ANOMALY, eventKey, eventSeconds, WILDFIRE } from "@/data/events";
 import { AnomalyQuery } from "@/hud/AnomalyQuery";
@@ -25,16 +29,19 @@ import { ALTITUDE, footprintLoop, lonLatToVector3 } from "../geo";
 
 interface PointsLayerProps {
 	events: readonly GlobePoint[];
+	anomalies: readonly FoundAnomalyPoint[];
 	style: GlobeStyle;
 	reducedMotion: boolean;
 }
 
 /**
  * One marker and true-scale footprint per event, keyed by event identity,
- * plus a marker for the selected spot.
+ * the same for each anomaly anyone has found, plus a marker for the selected
+ * spot.
  */
 export function PointsLayer({
 	events,
+	anomalies,
 	style,
 	reducedMotion,
 }: PointsLayerProps) {
@@ -56,6 +63,23 @@ export function PointsLayer({
 					/>
 				);
 			})}
+			{anomalies.map((anomaly) => (
+				<group key={eventKey(anomaly)}>
+					<SizeRing
+						longitude={anomaly.longitude}
+						latitude={anomaly.latitude}
+						radius={anomaly.radius}
+						color={toneColor(ANOMALY.tone)}
+						style={style}
+					/>
+					<FireDot
+						longitude={anomaly.longitude}
+						latitude={anomaly.latitude}
+						color={toneColor(ANOMALY.tone)}
+						style={style}
+					/>
+				</group>
+			))}
 		</group>
 	);
 }

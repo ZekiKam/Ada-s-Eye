@@ -16,6 +16,6 @@ export interface LeaderboardEntry {
   latitude: number;
   event_time: string;
   radius: number;
-  detections: number;
+  intensity: number;
   confidence: number;
 }

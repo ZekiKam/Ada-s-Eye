@@ -6,8 +6,7 @@
  */
 
 export * from './anomaly';
-export * from './detectedAnomaly';
-export * from './detectedAnomalyReasonsItem';
+export * from './foundAnomalyPoint';
 export * from './globePoint';
 export * from './hTTPValidationError';
 export * from './leaderboardClaim';

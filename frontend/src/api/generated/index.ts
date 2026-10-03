@@ -25,7 +25,7 @@ import type {
 
 import type {
   Anomaly,
-  DetectedAnomaly,
+  FoundAnomalyPoint,
   GlobePoint,
   HTTPValidationError,
   LeaderboardEntry,
@@ -156,107 +156,6 @@ export function useGetAllPoints<TData = Awaited<ReturnType<typeof getAllPoints>>
 
 
 
-export const getGetAnomaliesUrl = () => {
-
-
-
-
-  return `/api/get_anomalies`
-}
-
-/**
- * @summary Get Anomalies
- */
-export const getAnomalies = async ( options?: Parameters<typeof customFetch>[1]): Promise<DetectedAnomaly[]> => {
-
-  return customFetch<DetectedAnomaly[]>(getGetAnomaliesUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetAnomaliesQueryKey = () => {
-    return [
-    `/api/get_anomalies`
-    ] as const;
-    }
-
-
-export const getGetAnomaliesQueryOptions = <TData = Awaited<ReturnType<typeof getAnomalies>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAnomalies>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetAnomaliesQueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAnomalies>>> = ({ signal }) => getAnomalies({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAnomalies>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetAnomaliesQueryResult = NonNullable<Awaited<ReturnType<typeof getAnomalies>>>
-export type GetAnomaliesQueryError = unknown
-
-
-export function useGetAnomalies<TData = Awaited<ReturnType<typeof getAnomalies>>, TError = unknown>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAnomalies>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getAnomalies>>,
-          TError,
-          Awaited<ReturnType<typeof getAnomalies>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetAnomalies<TData = Awaited<ReturnType<typeof getAnomalies>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAnomalies>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getAnomalies>>,
-          TError,
-          Awaited<ReturnType<typeof getAnomalies>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetAnomalies<TData = Awaited<ReturnType<typeof getAnomalies>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAnomalies>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get Anomalies
- */
-
-export function useGetAnomalies<TData = Awaited<ReturnType<typeof getAnomalies>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAnomalies>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetAnomaliesQueryOptions(options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
-
 export const getRequestAnomalyUrl = (params: RequestAnomalyParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -273,12 +172,12 @@ export const getRequestAnomalyUrl = (params: RequestAnomalyParams,) => {
 }
 
 /**
- * The largest anomaly (a group of anomalous detections, see grouping.py)
- * that started in that year with its middle within the search radius of the
- * queried spot: its middle, radius and distance. With none, the queried spot
- * and the search radius at confidence 0. An anomaly found for the first time
- * that is among the largest goes on the leaderboard, and `claim` holds the
- * token to name it.
+ * The anomaly within the search radius of the queried spot in that year,
+ * found on the fly: its middle, radius, intensity and distance. With none,
+ * the queried spot and the search radius at confidence 0. An anomaly found
+ * for the first time that is among the largest goes on the leaderboard, and
+ * `claim` holds the token to name it. Each anomaly can be found only once:
+ * after that, queries skip it.
  * @summary Request Anomaly
  */
 export const requestAnomaly = async (params: RequestAnomalyParams, options?: Parameters<typeof customFetch>[1]): Promise<Anomaly> => {
@@ -359,6 +258,109 @@ export function useRequestAnomaly<TData = Awaited<ReturnType<typeof requestAnoma
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getRequestAnomalyQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetFoundAnomaliesUrl = () => {
+
+
+
+
+  return `/api/found_anomalies`
+}
+
+/**
+ * Every anomaly anyone has found, oldest find first. Kept in memory, so
+ * it empties when the server restarts.
+ * @summary Get Found Anomalies
+ */
+export const getFoundAnomalies = async ( options?: Parameters<typeof customFetch>[1]): Promise<FoundAnomalyPoint[]> => {
+
+  return customFetch<FoundAnomalyPoint[]>(getGetFoundAnomaliesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFoundAnomaliesQueryKey = () => {
+    return [
+    `/api/found_anomalies`
+    ] as const;
+    }
+
+
+export const getGetFoundAnomaliesQueryOptions = <TData = Awaited<ReturnType<typeof getFoundAnomalies>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFoundAnomalies>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFoundAnomaliesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFoundAnomalies>>> = ({ signal }) => getFoundAnomalies({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFoundAnomalies>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetFoundAnomaliesQueryResult = NonNullable<Awaited<ReturnType<typeof getFoundAnomalies>>>
+export type GetFoundAnomaliesQueryError = unknown
+
+
+export function useGetFoundAnomalies<TData = Awaited<ReturnType<typeof getFoundAnomalies>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFoundAnomalies>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getFoundAnomalies>>,
+          TError,
+          Awaited<ReturnType<typeof getFoundAnomalies>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetFoundAnomalies<TData = Awaited<ReturnType<typeof getFoundAnomalies>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFoundAnomalies>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getFoundAnomalies>>,
+          TError,
+          Awaited<ReturnType<typeof getFoundAnomalies>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetFoundAnomalies<TData = Awaited<ReturnType<typeof getFoundAnomalies>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFoundAnomalies>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get Found Anomalies
+ */
+
+export function useGetFoundAnomalies<TData = Awaited<ReturnType<typeof getFoundAnomalies>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFoundAnomalies>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetFoundAnomaliesQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

@@ -1,7 +1,7 @@
 """The largest anomalies found through request_anomaly.
 
 Held in memory only, so it empties when the server restarts. Size is an
-anomaly's radius in km, then how many detections it has.
+anomaly's radius in km, then its intensity (brightness in kelvin).
 Each anomaly is listed once, credited to whoever found it first. Finding one
 hands back a token, which lets that finder (and nobody else) put a name to it.
 """
@@ -49,7 +49,9 @@ class Leaderboard:
         )
         # Stable sort: on a tie, the earlier find keeps its place.
         ranked = sorted(
-            [*self.entries, entry], key=lambda e: (e.anomaly.radius_km, e.anomaly.detections), reverse=True
+            [*self.entries, entry],
+            key=lambda e: (e.anomaly.radius_km, e.anomaly.intensity),
+            reverse=True,
         )[: self.length]
         if entry not in ranked:
             return None
